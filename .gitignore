@@ -15,3 +15,8 @@ pga.db
 tests/coverage/*
 /dist
 /lutris.egg-info
+.directory
+Pipfile
+Pipfile.lock
+*.ui~
+venv
