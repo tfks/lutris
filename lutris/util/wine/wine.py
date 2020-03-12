@@ -8,7 +8,7 @@ from lutris import runtime, settings
 from lutris.gui.dialogs import DontShowAgainDialog, ErrorDialog
 from lutris.util import system
 from lutris.util.log import logger
-from lutris.util.strings import version_sort
+from lutris.util.strings import version_sort, parse_version
 from lutris.runners.steam import steam
 
 WINE_DIR = os.path.join(settings.RUNNER_DIR, "wine")
@@ -123,6 +123,8 @@ def is_installed_systemwide():
     """Return whether Wine is installed outside of Lutris"""
     for build in WINE_PATHS.values():
         if system.find_executable(build):
+            # if wine64 is installed but not wine32, don't consider it
+            # a system-wide installation.
             if (
                 build == "wine"
                 and system.path_exists("/usr/lib/wine/wine64")
@@ -232,12 +234,27 @@ def is_version_esync(path):
     Returns:
         bool: True is the build is Esync capable
     """
-    version = path.lower()
-    if "esync" in version or "tkg" in version or "proton" in version:
-        return True
+    try:
+        version = path.split("/")[-3].lower()
+    except IndexError:
+        logger.error("Invalid path '%s'", path)
+        return False
+    version_number, version_prefix, version_suffix = parse_version(version)
+    esync_compatible_versions = ["esync", "lutris", "tkg", "ge", "proton"]
+    for esync_version in esync_compatible_versions:
+        if esync_version in version_prefix or esync_version in version_suffix:
+            return True
 
-    wine_ver = str(subprocess.check_output([path, "--version"]))
-    return "esync" in wine_ver.lower()
+    wine_ver = str(subprocess.check_output([path, "--version"])).lower()
+    version, *_ = wine_ver.split()
+    version_number, version_prefix, version_suffix = parse_version(version)
+
+    if "esync" in wine_ver:
+        return True
+    if "staging" in wine_ver and version_number[0] >= 4 and version_number[1] >= 6:
+        # Support for esync was merged in Wine Staging 4.6
+        return True
+    return False
 
 
 def get_real_executable(windows_executable, working_dir=None):
@@ -299,9 +316,9 @@ def esync_display_version_warning(on_launch=False):
     DontShowAgainDialog(
         setting,
         "Incompatible Wine version detected",
-        secondary_message="The wine build you have selected "
-        "does not seem to support Esync.\n"
-        "Please switch to an esync-capable version such as wine-tkg.",
+        secondary_message="The Wine build you have selected "
+        "does not support Esync.\n"
+        "Please switch to an esync-capable version.",
         checkbox_message=checkbox_message,
     )
     return settings.read_setting(setting) == "True"

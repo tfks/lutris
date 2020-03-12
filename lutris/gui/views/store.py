@@ -92,10 +92,18 @@ class GameStore(GObject.Object):
             filter_installed,
             sort_key,
             sort_ascending,
+            show_hidden_games,
             show_installed_first=False,
     ):
         super(GameStore, self).__init__()
-        self.games = games or []
+        self.games = games or pga.get_games(show_installed_first=show_installed_first)
+        if not show_hidden_games:
+            # Check if the PGA contains game IDs that the user does not
+            # want to see
+            self.games = [
+                game for game in self.games if game["id"] not in pga.get_hidden_ids()
+            ]
+
         self.search_mode = False
         self.games_to_refresh = set()
         self.icon_type = icon_type
@@ -130,7 +138,11 @@ class GameStore(GObject.Object):
         self.prevent_sort_update = False  # prevent recursion with signals
         self.modelfilter = self.store.filter_new()
         self.modelfilter.set_visible_func(self.filter_view)
-        self.modelsort = Gtk.TreeModelSort.sort_new_with_model(self.modelfilter)
+        try:
+            self.modelsort = Gtk.TreeModelSort.sort_new_with_model(self.modelfilter)
+        except AttributeError:
+            # Apparently some API breaking changes on GTK minor versions.
+            self.modelsort = Gtk.TreeModelSort.new_with_model(self.modelfilter)
         self.modelsort.connect("sort-column-changed", self.on_sort_column_changed)
         self.modelsort.set_sort_func(sort_col, sort_func, sort_col)
         self.sort_view(sort_key, sort_ascending)
@@ -237,8 +249,14 @@ class GameStore(GObject.Object):
         return True
 
     def sort_view(self, key="name", ascending=True):
+        """Sort the model on a given column name"""
+        try:
+            sort_column = self.sort_columns[key]
+        except KeyError:
+            logger.error("Invalid column name '%s'", key)
+            sort_column = COL_NAME
         self.modelsort.set_sort_column_id(
-            self.sort_columns[key],
+            sort_column,
             Gtk.SortType.ASCENDING if ascending else Gtk.SortType.DESCENDING,
         )
 

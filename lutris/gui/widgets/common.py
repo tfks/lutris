@@ -137,8 +137,8 @@ class FileChooserEntry(Gtk.Box):
             ntfs_box.add(warning_image)
             ntfs_label = Gtk.Label(visible=True)
             ntfs_label.set_markup(
-                "<b>Warning!</b> The selected path is located on a NTFS drive.\n"
-                "Installing games on NTFS partitions is known to cause issues."
+                "<b>Warning!</b> The selected path is located on a drive formatted by Windows.\n"
+                "Games and programs installed on Windows drives usually <b>don't work</b>."
             )
             ntfs_box.add(ntfs_label)
             self.pack_end(ntfs_box, False, False, 10)
@@ -149,6 +149,14 @@ class FileChooserEntry(Gtk.Box):
                 "contains files. Installation might not work properly."
             )
             self.pack_end(non_empty_label, False, False, 10)
+        parent = system.get_existing_parent(path)
+        if not os.access(parent, os.W_OK):
+            non_writable_destination_label = Gtk.Label(visible=True)
+            non_writable_destination_label.set_markup(
+                "<b>Warning</b> The destination folder "
+                "is not writable by the current user."
+            )
+            self.pack_end(non_writable_destination_label, False, False, 10)
 
     def on_select_file(self, dialog, response):
         """FileChooserDialog response callback"""
@@ -199,6 +207,17 @@ class Label(Gtk.Label):
         self.set_size_request(230, -1)
         self.set_alignment(0, 0.5)
         self.set_justify(Gtk.Justification.LEFT)
+
+
+class InstallerLabel(Gtk.Label):
+    """Label for installer window"""
+    def __init__(self, message=None):
+        super().__init__(label=message)
+        self.set_max_width_chars(80)
+        self.set_property("wrap", True)
+        self.set_use_markup(True)
+        self.set_selectable(True)
+        self.set_alignment(0.5, 0)
 
 
 class VBox(Gtk.Box):
@@ -255,7 +274,7 @@ class EditableGrid(Gtk.Grid):
 
     def on_add(self, widget):
         self.liststore.append(["", ""])
-        row_position = len(self.liststore)-1
+        row_position = len(self.liststore) - 1
         self.treeview.set_cursor(row_position, None, False)
         self.treeview.scroll_to_cell(row_position, None, False, 0.0, 0.0)
         self.emit("changed")

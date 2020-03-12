@@ -1,3 +1,4 @@
+"""Window used for game installers"""
 import os
 import time
 import webbrowser
@@ -13,7 +14,7 @@ from lutris.gui.dialogs import (
     NoInstallerDialog, DirectoryDialog, InstallerSourceDialog, QuestionDialog
 )
 from lutris.gui.widgets.download_progress import DownloadProgressBox
-from lutris.gui.widgets.common import FileChooserEntry
+from lutris.gui.widgets.common import FileChooserEntry, InstallerLabel
 from lutris.gui.widgets.installer import InstallerPicker
 from lutris.gui.widgets.log_text_view import LogTextView
 from lutris.gui.widgets.window import BaseApplicationWindow
@@ -49,10 +50,10 @@ class InstallerWindow(BaseApplicationWindow):
         self.log_buffer = None
         self.log_textview = None
 
-        self.title_label = Gtk.Label()
+        self.title_label = InstallerLabel()
         self.vbox.add(self.title_label)
 
-        self.status_label = Gtk.Label()
+        self.status_label = InstallerLabel()
         self.status_label.set_max_width_chars(80)
         self.status_label.set_property("wrap", True)
         self.status_label.set_selectable(True)
@@ -70,11 +71,8 @@ class InstallerWindow(BaseApplicationWindow):
         action_buttons_alignment.add(self.action_buttons)
         self.vbox.pack_start(action_buttons_alignment, False, True, 0)
 
-        self.cancel_button = Gtk.Button.new_with_mnemonic("C_ancel")
-        self.cancel_button.set_tooltip_text("Abort and revert the " "installation")
-        self.cancel_button.connect("clicked", self.cancel_installation)
-        self.action_buttons.add(self.cancel_button)
-
+        self.cancel_button = self.add_button("C_ancel", self.cancel_installation,
+                                             tooltip="Abort and revert the installation")
         self.eject_button = self.add_button("_Eject", self.on_eject_clicked)
         self.source_button = self.add_button("_View source", self.on_source_clicked)
         self.install_button = self.add_button("_Install", self.on_install_clicked)
@@ -84,28 +82,32 @@ class InstallerWindow(BaseApplicationWindow):
 
         self.continue_handler = None
 
-        self.get_scripts()
-
-        self.present()
-
-    def add_button(self, label, handler=None):
-        button = Gtk.Button.new_with_mnemonic(label)
-        if handler:
-            button.connect("clicked", handler)
-        self.action_buttons.add(button)
-        return button
-
-    def get_scripts(self):
+        # check if installer is local or online
         if system.path_exists(self.installer_file):
-            # local script
             self.on_scripts_obtained(interpreter.read_script(self.installer_file))
         else:
+            self.title_label.set_markup("Waiting for response from %s" % (settings.SITE_URL))
+            self.add_spinner()
+            self.widget_box.show()
+            self.title_label.show()
             jobs.AsyncCall(
                 interpreter.fetch_script,
                 self.on_scripts_obtained,
                 self.game_slug,
                 self.revision,
             )
+        self.present()
+
+    def add_button(self, label, handler=None, tooltip=None):
+        """Add a button to the action buttons box"""
+        button = Gtk.Button.new_with_mnemonic(label)
+        if tooltip:
+            button.set_tooltip_text(tooltip)
+        if handler:
+            button.connect("clicked", handler)
+
+        self.action_buttons.add(button)
+        return button
 
     def on_scripts_obtained(self, scripts, _error=None):
         if not scripts:
@@ -115,6 +117,7 @@ class InstallerWindow(BaseApplicationWindow):
 
         if not isinstance(scripts, list):
             scripts = [scripts]
+        self.clean_widgets()
         self.scripts = scripts
         self.show_all()
         self.close_button.hide()
@@ -281,7 +284,7 @@ class InstallerWindow(BaseApplicationWindow):
             action = Gtk.FileChooserAction.SELECT_FOLDER
             enable_warnings = True
         else:
-            raise ValueError("Invalid action %s", action)
+            raise ValueError("Invalid action %s" % action)
 
         if self.location_entry:
             self.location_entry.destroy()
@@ -295,7 +298,7 @@ class InstallerWindow(BaseApplicationWindow):
         self.location_entry.entry.connect("changed", callback_on_changed, action)
         self.widget_box.pack_start(self.location_entry, False, False, 0)
 
-    def on_file_selected(self, widget):
+    def on_file_selected(self, _widget):
         file_path = os.path.expanduser(self.location_entry.get_text())
         if os.path.isfile(file_path):
             self.selected_directory = os.path.dirname(file_path)
@@ -335,10 +338,9 @@ class InstallerWindow(BaseApplicationWindow):
         """Ask the user to do insert a CD-ROM."""
         time.sleep(0.3)
         self.clean_widgets()
-        label = Gtk.Label(label=message)
-        label.set_use_markup(True)
-        self.widget_box.add(label)
+        label = InstallerLabel(message)
         label.show()
+        self.widget_box.add(label)
 
         buttons_box = Gtk.Box()
         buttons_box.show()
@@ -426,7 +428,6 @@ class InstallerWindow(BaseApplicationWindow):
         self.play_button.show()
         self.close_button.grab_focus()
         self.close_button.show()
-
         if not self.is_active():
             self.set_urgency_hint(True)  # Blink in taskbar
             self.connect("focus-in-event", self.on_window_focus)
@@ -474,16 +475,19 @@ class InstallerWindow(BaseApplicationWindow):
 
     def cancel_installation(self, widget=None):
         """Ask a confirmation before cancelling the install"""
+        remove_checkbox = Gtk.CheckButton.new_with_label("Remove game files")
+        if self.interpreter:
+            remove_checkbox.set_active(self.interpreter.game_dir_created)
+            remove_checkbox.show()
         confirm_cancel_dialog = QuestionDialog(
             {
                 "question": "Are you sure you want to cancel the installation?",
                 "title": "Cancel installation?",
+                "widgets": [remove_checkbox]
             }
         )
         if confirm_cancel_dialog.result != Gtk.ResponseType.YES:
-            logger.warning("Attempting to terminate with the system wineserver. "
-                           "This is most likely to fail or to have no effect.")
-            system.execute([system.find_executable("wineserver"), "-k9"])
+            logger.debug("User cancelled installation")
             return True
         if self.interpreter:
             self.interpreter.revert()
@@ -506,11 +510,8 @@ class InstallerWindow(BaseApplicationWindow):
 
     def set_message(self, message):
         """Display a message."""
-        label = Gtk.Label()
+        label = InstallerLabel()
         label.set_markup("<b>%s</b>" % add_url_tags(message))
-        label.set_max_width_chars(80)
-        label.set_property("wrap", True)
-        label.set_alignment(0, 0)
         label.show()
         self.widget_box.pack_start(label, False, False, 18)
 

@@ -250,7 +250,7 @@ should be extracted in some other location than the ``$GAMEDIR``, you can specif
 
 You can optionally specify the archive's type with the ``format`` option.
 This is useful if the archive's file extension does not match what it should
-be. Accepted values for ``format`` are: zip, tgz, gzip and bz2.
+be. Accepted values for ``format`` are: zip, tgz, gzip, bz2, and gog (innoextract).
 
 Example:
 
@@ -454,13 +454,13 @@ Currently, the following tasks are implemented:
             name: winetricks
             prefix: $GAMEDIR
             app: nt40
-            
+
     For a full list of available ``winetricks`` see here: https://github.com/Winetricks/winetricks/tree/master/files/verbs
 
-*   wine / winesteam: ``eject_disk`` runs eject_disk in your ``prefix`` argument. parameters are
+*   wine / winesteam: ``eject_disk`` runs eject_disk in your ``prefix`` argument. Parameters are
     ``prefix`` (optional wineprefix path).
 
-    example:
+    Example:
 
     ::
 
@@ -573,7 +573,7 @@ Example:
         - en: English
         - fr: French
         - "value and": "label can be anything, surround them with quotes to avoid issues"
-        preselect: fr
+        preselect: en
 
 In this example, English would be preselected. If the option eventually
 selected is French, the "$INPUT_LANG" alias would be available in
@@ -585,7 +585,7 @@ Trying the installer locally
 ============================
 
 If needed (i.e. you didn't download the installer first from the website), add
-the ``name`` (if name contains : character surrond name with quotes), ``game_slug``, ``slug``, ``version`` and ``runner`` directives.
+the ``name`` (if it contains the ``:`` character, surround the name with quotes), ``game_slug``, ``slug``, ``version`` and ``runner`` directives.
 The value for ``runner`` must be the slug name for the runner.
 (E.g. winesteam for Steam Windows.)
 Under ``script``, add ``files``, ``installer``, ``game`` and other installer
@@ -824,7 +824,7 @@ Example winesteam game:
           WINEDLLOVERRIDES: d3d11=
           SOMEENV: true
 
-Example steam linux game:
+Example steam Linux game:
 
 ::
 
@@ -887,7 +887,7 @@ Overrides format for ``create_prefix``, ``wineexec`` commands and for ``wine`` o
 
       overrides:
         ddraw.dll: n
-        d3d9: disable
+        d3d9: disabled
         winegstreamer: builtin
 
 
@@ -973,8 +973,6 @@ Sysoptions
 ``use_us_layout`` (example: ``true``)
 
 ``killswitch`` (example: ``/dev/input/js0``)
-
-``xboxdrv`` (example: ``--silent --type xbox360``)
 
 ``sdl_gamecontrollerconfig`` (example: ``$HOME/gamecontrollerdb.txt``)
 

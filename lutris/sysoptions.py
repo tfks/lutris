@@ -1,11 +1,56 @@
 """Options list for system config."""
+# pylint: disable=invalid-name
 import os
 import glob
 from collections import OrderedDict
 
 from lutris import runners
-from lutris.util import display, system
+from lutris.util import system
+from lutris.util.display import USE_DRI_PRIME, DISPLAY_MANAGER
 from lutris.discord import DiscordPresence
+
+
+VULKAN_DATA_DIRS = [
+    "/usr/local/etc/vulkan",  # standard site-local location
+    "/usr/local/share/vulkan",  # standard site-local location
+    "/etc/vulkan",  # standard location
+    "/usr/share/vulkan",  # standard location
+    "/usr/lib/x86_64-linux-gnu/GL/vulkan",  # Flatpak GL extension
+    "/usr/lib/i386-linux-gnu/GL/vulkan",  # Flatpak GL32 extension
+    "/opt/amdgpu-pro/etc/vulkan"  # AMD GPU Pro - TkG
+]
+
+
+def get_resolution_choices():
+    """Return list of available resolutions as label, value tuples
+    suitable for inclusion in drop-downs.
+    """
+    resolutions = DISPLAY_MANAGER.get_resolutions()
+    resolution_choices = list(zip(resolutions, resolutions))
+    resolution_choices.insert(0, ("Keep current", "off"))
+    return resolution_choices
+
+
+def get_output_choices():
+    """Return list of outputs for drop-downs"""
+    displays = DISPLAY_MANAGER.get_display_names()
+    output_choices = list(zip(displays, displays))
+    output_choices.insert(0, ("Off", "off"))
+    output_choices.insert(1, ("Primary", "primary"))
+    return output_choices
+
+
+def get_output_list():
+    """Return a list of output with their index.
+    This is used to indicate to SDL 1.2 which monitor to use.
+    """
+    choices = [("Off", "off")]
+    displays = DISPLAY_MANAGER.get_display_names()
+    for index, output in enumerate(displays):
+        # Display name can't be used because they might not be in the right order
+        # Using DISPLAYS to get the number of connected monitors
+        choices.append((output, str(index)))
+    return choices
 
 
 def get_optirun_choices():
@@ -22,13 +67,11 @@ def get_optirun_choices():
 
 def get_vk_icd_choices():
     """Return available Vulkan ICD loaders"""
-    loader_paths = ["/usr/share/vulkan/icd.d/*.json",  # standard location
-                    "/opt/amdgpu-pro/etc/vulkan/icd.d/*.json",  # AMD GPU Pro - TkG
-                    "/etc/vulkan/icd.d/*.json"]  # AMDVLK - Ubuntu
     choices = [("Auto", "")]
 
     # Add loaders
-    for path in loader_paths:
+    for data_dir in VULKAN_DATA_DIRS:
+        path = os.path.join(data_dir, "icd.d", "*.json")
         for loader in glob.glob(path):
             choices.append((os.path.basename(loader), loader))
 
@@ -185,10 +228,24 @@ system_options = [  # pylint: disable=invalid-name
         "help": "Request a set of optimisations be temporarily applied to the host OS",
     },
     {
+        "option": "prime",
+        "type": "bool",
+        "default": False,
+        "condition": True,
+        "label": "Enable NVIDIA Prime render offload",
+        "help": (
+            "If you have the latest NVIDIA driver and the properly patched xorg-server (see "
+            "https://download.nvidia.com/XFree86/Linux-x86_64/435.17/README/primerenderoffload.html"
+            "), you can launch a game on your NVIDIA GPU by toggling this switch. This will apply "
+            "__NV_PRIME_RENDER_OFFLOAD=1 and "
+            "__GLX_VENDOR_LIBRARY_NAME=nvidia environment variables."
+        )
+    },
+    {
         "option": "dri_prime",
         "type": "bool",
-        "default": display.USE_DRI_PRIME,
-        "condition": display.USE_DRI_PRIME,
+        "default": USE_DRI_PRIME,
+        "condition": USE_DRI_PRIME,
         "label": "Use discrete graphics",
         "advanced": True,
         "help": (
@@ -202,7 +259,7 @@ system_options = [  # pylint: disable=invalid-name
         "option": "sdl_video_fullscreen",
         "type": "choice",
         "label": "SDL 1.2 Fullscreen Monitor",
-        "choices": display.get_output_list,
+        "choices": get_output_list,
         "default": "off",
         "advanced": True,
         "help": (
@@ -215,7 +272,7 @@ system_options = [  # pylint: disable=invalid-name
         "option": "display",
         "type": "choice",
         "label": "Turn off monitors except",
-        "choices": display.get_output_choices,
+        "choices": get_output_choices,
         "default": "off",
         "advanced": True,
         "help": (
@@ -229,7 +286,7 @@ system_options = [  # pylint: disable=invalid-name
         "option": "resolution",
         "type": "choice",
         "label": "Switch resolution to",
-        "choices": display.get_resolution_choices,
+        "choices": get_resolution_choices,
         "default": "off",
         "help": "Switch to this screen resolution while the game is running.",
     },
@@ -274,29 +331,29 @@ system_options = [  # pylint: disable=invalid-name
     {
         "option": "manual_command",
         "type": "file",
-        "label": "Manual command",
+        "label": "Manual script",
         "advanced": True,
         "help": ("Script to execute from the game's contextual menu"),
     },
     {
         "option": "prelaunch_command",
         "type": "file",
-        "label": "Pre-launch command",
+        "label": "Pre-launch script",
         "advanced": True,
         "help": "Script to execute before the game starts",
     },
     {
         "option": "prelaunch_wait",
         "type": "bool",
-        "label": "Wait for pre-launch command completion",
+        "label": "Wait for pre-launch script completion",
         "advanced": True,
         "default": False,
-        "help": "Run the game only once the pre-launch command has exited",
+        "help": "Run the game only once the pre-launch script has exited",
     },
     {
         "option": "postexit_command",
         "type": "file",
-        "label": "Post-exit command",
+        "label": "Post-exit script",
         "advanced": True,
         "help": "Script to execute when the game exits",
     },
@@ -334,17 +391,6 @@ system_options = [  # pylint: disable=invalid-name
             "Path to a file which will stop the game when deleted \n"
             "(usually /dev/input/js0 to stop the game on joystick "
             "unplugging)"
-        ),
-    },
-    {
-        "option": "xboxdrv",
-        "type": "string",
-        "label": "xboxdrv config",
-        "advanced": True,
-        "condition": system.find_executable("xboxdrv"),
-        "help": (
-            "Command line options for xboxdrv, a driver for XBOX 360 "
-            "controllers. Requires the xboxdrv package installed."
         ),
     },
     {

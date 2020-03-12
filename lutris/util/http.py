@@ -1,6 +1,5 @@
 import json
 import socket
-import platform
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -60,9 +59,7 @@ class Request:
 
     @property
     def user_agent(self):
-        return "{}/{} ({} {})".format(
-            PROJECT, VERSION, " ".join(platform.dist()), platform.machine()
-        )
+        return "{} {}".format(PROJECT, VERSION)
 
     def get(self, data=None):
         logger.debug("GET %s", self.url)
@@ -75,8 +72,7 @@ class Request:
         except (urllib.error.HTTPError, CertificateError) as error:
             if error.code == 401:
                 raise UnauthorizedAccess("Access to %s denied" % self.url)
-            else:
-                raise HTTPError("Request to %s failed: %s" % (self.url, error))
+            raise HTTPError("Request to %s failed: %s" % (self.url, error))
         except (socket.timeout, urllib.error.URLError) as error:
             raise HTTPError("Unable to connect to server %s: %s" % (self.url, error))
         if request.getcode() > 200:
@@ -130,10 +126,10 @@ class Request:
                         self.url, self.status_code, self.text[:80]
                     )
                 )
-        return None
+        return {}
 
     @property
     def text(self):
         if self.content:
             return self.content.decode()
-        return None
+        return ""

@@ -1,5 +1,6 @@
 """Manipulates installer files"""
 import os
+from urllib.parse import urlparse
 from lutris import pga
 from lutris import settings
 from lutris.installer.errors import ScriptingError, FileNotAvailable
@@ -77,7 +78,8 @@ class InstallerFile:
         _cache_path = get_cache_path()
         if not _cache_path:
             _cache_path = os.path.join(settings.CACHE_DIR, "installer")
-        if "cdn.gog.com" in self.url or "cdn-hw.gog.com" in self.url:
+        url_parts = urlparse(self.url)
+        if url_parts.netloc.endswith("gog.com"):
             folder = "gog"
         else:
             folder = self.id
@@ -119,6 +121,7 @@ class InstallerFile:
             raise ScriptingError(hash_type.capitalize() + " checksum mismatch ", self.checksum)
 
     def download(self, downloader):
+        """Download a file with a given downloader"""
         if self.uses_pga_cache() and system.path_exists(self.dest_file):
             logger.info("File %s already cached", self)
             return False

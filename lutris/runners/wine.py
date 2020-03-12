@@ -10,13 +10,15 @@ from lutris.exceptions import GameConfigError
 from lutris.gui.dialogs import FileDialog
 from lutris.runners.runner import Runner
 from lutris.util.jobs import thread_safe_call
-from lutris.util import display, system
+from lutris.util import system
 from lutris.util.log import logger
-from lutris.util.strings import parse_version
+from lutris.util.strings import parse_version, split_arguments
+from lutris.util.display import DISPLAY_MANAGER
 from lutris.util.graphics.vkquery import is_vulkan_supported
 from lutris.util.wine.prefix import WinePrefixManager
 from lutris.util.wine.x360ce import X360ce
 from lutris.util.wine import dxvk
+from lutris.util.wine import nine
 from lutris.util.wine.wine import (
     POL_PATH,
     WINE_DIR,
@@ -66,7 +68,8 @@ class wine(Runner):
             "option": "args",
             "type": "string",
             "label": "Arguments",
-            "help": "Windows command line arguments used when launching the game"
+            "help": "Windows command line arguments used when launching the game",
+            "validator": shlex.split
         },
         {
             "option": "working_dir",
@@ -94,7 +97,7 @@ class wine(Runner):
             "label": "Prefix architecture",
             "choices": [("Auto", "auto"), ("32-bit", "win32"), ("64-bit", "win64")],
             "default": "auto",
-            "help": "The architecture of the Windows environment"
+            "help": "The architecture of the Windows environment",
         },
     ]
 
@@ -155,9 +158,6 @@ class wine(Runner):
         def get_dxvk_choices():
             return dxvk_choices(dxvk.DXVKManager)
 
-        def get_d9vk_choices():
-            return dxvk_choices(dxvk.D9VKManager)
-
         def esync_limit_callback(widget, option, config):
             limits_set = is_esync_limit_set()
             wine_path = self.get_path_for_version(config["version"])
@@ -204,13 +204,26 @@ class wine(Runner):
                 ),
             },
             {
+                "option": "system_winetricks",
+                "label": "Use system winetricks",
+                "type": "bool",
+                "default": False,
+                "advanced": True,
+                "help": "Switch on to use /usr/bin/winetricks for winetricks.",
+            },
+            {
                 "option": "dxvk",
                 "label": "Enable DXVK",
                 "type": "extended_bool",
-                "help": "Use DXVK to translate DirectX 11 calls to Vulkan",
                 "callback": dxvk_vulkan_callback,
                 "callback_on": True,
+                "default": True,
                 "active": True,
+                "help": (
+                    "Use DXVK to increase compatibility and performance "
+                    "in Direct3D 11 and 10 applications by translating "
+                    "their calls to Vulkan."
+                ),
             },
             {
                 "option": "dxvk_version",
@@ -221,30 +234,31 @@ class wine(Runner):
                 "default": dxvk.DXVKManager.DXVK_LATEST,
             },
             {
-                "option": "d9vk",
-                "label": "Enable D9VK",
-                "type": "extended_bool",
-                "help": "Use D9VK to translate DirectX 9 calls to Vulkan",
-                "callback": dxvk_vulkan_callback,
-                "callback_on": True,
-                "active": True,
-            },
-            {
-                "option": "d9vk_version",
-                "label": "D9VK version",
-                "advanced": True,
-                "type": "choice_with_entry",
-                "choices": get_d9vk_choices,
-                "default": dxvk.D9VKManager.DXVK_LATEST,
-            },
-            {
                 "option": "esync",
                 "label": "Enable Esync",
                 "type": "extended_bool",
-                "help": "Enable eventfd-based synchronization (esync)",
                 "callback": esync_limit_callback,
                 "callback_on": True,
                 "active": True,
+                "help": (
+                    "Enable eventfd-based synchronization (esync). "
+                    "This will increase performance in applications "
+                    "that take advantage of multi-core processors."
+                ),
+            },
+            {
+                "option": "gallium_nine",
+                "label": "Enable Gallium Nine",
+                "type": "bool",
+                "default": False,
+                "condition": nine.NineManager.is_available(),
+                "advanced": True,
+                "help": (
+                    "Gallium Nine allows to run Direct3D 9 applications faster.\n"
+                    "Make sure your active graphics card supports Gallium Nine state "
+                    "tracker before enabling this option.\n"
+                    "Note: This feature is not supported by proprietary Nvidia driver."
+                ),
             },
             {
                 "option": "x360ce-path",
@@ -304,7 +318,7 @@ class wine(Runner):
                 "option": "WineDesktop",
                 "label": "Virtual desktop resolution",
                 "type": "choice_with_entry",
-                "choices": display.get_unique_resolutions,
+                "choices": DISPLAY_MANAGER.get_resolutions,
                 "help": "The size of the virtual desktop in pixels.",
             },
             {
@@ -379,7 +393,7 @@ class wine(Runner):
                     ("2", "2"),
                     ("4", "4"),
                     ("8", "8"),
-                    ("16", "16")
+                    ("16", "16"),
                 ],
                 "default": "auto",
                 "advanced": True,
@@ -389,7 +403,7 @@ class wine(Runner):
                     "panel setting available with some GPU drivers. This one might work in more "
                     "cases than the driver setting though. "
                     "Not all applications are compatible with all sample counts. "
-                )
+                ),
             },
             {
                 "option": "UseXVidMode",
@@ -484,12 +498,11 @@ class wine(Runner):
     @property
     def context_menu_entries(self):
         """Return the contexual menu entries for wine"""
-        menu_entries = [
-            ("wineexec", "Run EXE inside wine prefix", self.run_wineexec)
-        ]
+        menu_entries = [("wineexec", "Run EXE inside wine prefix", self.run_wineexec)]
         if "Proton" not in self.get_version():
             menu_entries.append(("winecfg", "Wine configuration", self.run_winecfg))
         menu_entries += [
+            ("wineconsole", "Wine console", self.run_wineconsole),
             ("wine-regedit", "Wine registry", self.run_regedit),
             ("winekill", "Kill all wine processes", self.run_winekill),
             ("winetricks", "Winetricks", self.run_winetricks),
@@ -502,8 +515,10 @@ class wine(Runner):
         """Return the absolute path of the Wine prefix"""
         _prefix_path = self.game_config.get("prefix")
         if not _prefix_path:
-            logger.warning("Wine prefix not provided, defaulting to $WINEPREFIX then ~/.wine."
-                           " This is probably not the intended behavior.")
+            logger.warning(
+                "Wine prefix not provided, defaulting to $WINEPREFIX then ~/.wine."
+                " This is probably not the intended behavior."
+            )
             _prefix_path = os.environ.get("WINEPREFIX") or "~/.wine"
         return os.path.expanduser(_prefix_path)
 
@@ -512,7 +527,7 @@ class wine(Runner):
         """Return the game's executable's path."""
         exe = self.game_config.get("exe")
         if not exe:
-            logger.warning("The game doesn't have an executabe")
+            logger.warning("The game doesn't have an executable")
             return
         if exe and os.path.isabs(exe):
             return exe
@@ -605,8 +620,8 @@ class wine(Runner):
         wine_versions = get_wine_versions()
         if min_version:
             min_version_list, _, _ = parse_version(min_version)
-            for version in wine_versions:
-                version_list, _, _ = parse_version(version)
+            for wine_version in wine_versions:
+                version_list, _, _ = parse_version(wine_version)
                 if version_list > min_version_list:
                     return True
             logger.warning("Wine %s or higher not found", min_version)
@@ -614,13 +629,13 @@ class wine(Runner):
 
     @classmethod
     def msi_exec(
-            cls,
-            msi_file,
-            quiet=False,
-            prefix=None,
-            wine_path=None,
-            working_dir=None,
-            blocking=False,
+        cls,
+        msi_file,
+        quiet=False,
+        prefix=None,
+        wine_path=None,
+        working_dir=None,
+        blocking=False,
     ):
         msi_args = "/i %s" % msi_file
         if quiet:
@@ -634,51 +649,60 @@ class wine(Runner):
             blocking=blocking,
         )
 
+    def _run_executable(self, executable):
+        """Runs a Windows executable using this game's configuration"""
+        wineexec(
+            executable,
+            wine_path=self.get_executable(),
+            prefix=self.prefix_path,
+            config=self,
+            env=self.get_env(os_env=True),
+        )
+
     def run_wineexec(self, *args):
+        """Ask the user for an arbitrary exe file to run in the game's prefix"""
         dlg = FileDialog("Select an EXE or MSI file", default_path=self.game_path)
         filename = dlg.filename
         if not filename:
             return
         self.prelaunch()
-        wineexec(
-            filename,
-            wine_path=self.get_executable(),
-            prefix=self.prefix_path,
-            config=self,
-        )
+        self._run_executable(filename)
+
+    def run_wineconsole(self, *args):
+        """Runs wineconsole inside wine prefix."""
+        self._run_executable("wineconsole")
 
     def run_winecfg(self, *args):
+        """Run winecfg in the current context"""
         self.prelaunch()
         winecfg(
             wine_path=self.get_executable(),
             prefix=self.prefix_path,
             arch=self.wine_arch,
             config=self,
+            env=self.get_env(os_env=True),
         )
 
     def run_regedit(self, *args):
+        """Run regedit in the current context"""
         self.prelaunch()
-        wineexec(
-            "regedit",
-            wine_path=self.get_executable(),
-            prefix=self.prefix_path,
-            config=self,
-        )
+        self._run_executable("regedit")
 
     def run_winetricks(self, *args):
+        """Run winetricks in the current context"""
         self.prelaunch()
         winetricks(
-            "", prefix=self.prefix_path, wine_path=self.get_executable(), config=self
+            "",
+            prefix=self.prefix_path,
+            wine_path=self.get_executable(),
+            config=self,
+            env=self.get_env(os_env=True)
         )
 
     def run_winecpl(self, *args):
         """Execute Wine control panel."""
         self.prelaunch()
-        wineexec(
-            "control",
-            prefix=self.prefix_path,
-            wine_path=self.get_executable()
-        )
+        self._run_executable("control")
 
     def run_winekill(self, *args):
         """Runs wineserver -k."""
@@ -725,6 +749,7 @@ class wine(Runner):
         if version.lower() != "manual":
             if enable:
                 if not dxvk_manager.is_available():
+                    logger.info("DXVK %s is not available yet, downloading...")
                     dxvk_manager.download()
                 dxvk_manager.enable()
             else:
@@ -746,7 +771,9 @@ class wine(Runner):
                 dxvk_manager=dxvk_manager,
             )
         except dxvk.UnavailableDXVKVersion:
-            raise GameConfigError("Unable to get "+base_name.upper()+" %s" % dxvk_manager.version)
+            raise GameConfigError(
+                "Unable to get " + base_name.upper() + " %s" % dxvk_manager.version
+            )
 
     def prelaunch(self):
         if not system.path_exists(os.path.join(self.prefix_path, "user.reg")):
@@ -757,21 +784,25 @@ class wine(Runner):
         self.sandbox(prefix_manager)
         self.set_regedit_keys()
         self.setup_x360ce(self.runner_config.get("x360ce-path"))
-        self.setup_dxvk("dxvk", dxvk_manager=dxvk.DXVKManager(
-                    self.prefix_path, arch=self.wine_arch, version=self.runner_config.get("dxvk_version")
-                ),)
+        self.setup_dxvk(
+            "dxvk",
+            dxvk_manager=dxvk.DXVKManager(
+                self.prefix_path,
+                arch=self.wine_arch,
+                version=self.runner_config.get("dxvk_version"),
+            ),
+        )
 
-        # we don't want d9vk to restore d3d9.dll, because dxvk could set it already
-        if bool(self.runner_config.get("d9vk")):
-            self.setup_dxvk("d9vk", dxvk_manager=dxvk.D9VKManager(
-                        self.prefix_path, arch=self.wine_arch, version=self.runner_config.get("d9vk_version")
-                    ),)
+        try:
+            self.setup_nine(self.runner_config.get("gallium_nine"))
+        except nine.NineUnavailable as ex:
+            raise GameConfigError("Unable to configure GalliumNine: %s" % ex)
         return True
 
     def get_dll_overrides(self):
         """Return the DLLs overriden at runtime"""
         try:
-            overrides = self.runner_config['overrides']
+            overrides = self.runner_config["overrides"]
         except KeyError:
             overrides = {}
         else:
@@ -824,7 +855,7 @@ class wine(Runner):
         return runtime.get_env(
             version=version,
             prefer_system_libs=self.system_config.get("prefer_system_libs", True),
-            wine_path=wine_root
+            wine_path=wine_root,
         )
 
     def get_pids(self, wine_path=None):
@@ -884,26 +915,37 @@ class wine(Runner):
         if self.runner_config.get("x360ce-dinput"):
             self.dll_overrides["dinput8"] = "native"
 
+    def setup_nine(self, enable):
+        nine_manager = nine.NineManager(self.prefix_path, self.wine_arch,)
+
+        if enable:
+            nine_manager.enable()
+        else:
+            nine_manager.disable()
+
     def sandbox(self, wine_prefix):
         if self.runner_config.get("sandbox", True):
             wine_prefix.desktop_integration(
                 desktop_dir=self.runner_config.get("sandbox_dir")
             )
+        else:
+            wine_prefix.desktop_integration(restore=True)
 
     def play(self):
         game_exe = self.game_exe
         arguments = self.game_config.get("args", "")
-        using_dxvk = self.runner_config.get("dxvk") or self.runner_config.get("d9vk")
+        launch_info = {"env": self.get_env(os_env=False)}
+        using_dxvk = self.runner_config.get("dxvk")
 
         if using_dxvk:
+            # Set this to 1 to enable access to more RAM for 32bit applications
+            launch_info["env"]["WINE_LARGE_ADDRESS_AWARE"] = "1"
             if not is_vulkan_supported():
                 if not display_vulkan_error(True):
                     return {"error": "VULKAN_NOT_FOUND"}
 
         if not system.path_exists(game_exe):
             return {"error": "FILE_NOT_FOUND", "file": game_exe}
-
-        launch_info = {"env": self.get_env(os_env=False)}
 
         if launch_info["env"].get("WINEESYNC") == "1":
             limit_set = is_esync_limit_set()
@@ -928,7 +970,7 @@ class wine(Runner):
             command = command + args
 
         if arguments:
-            for arg in shlex.split(arguments):
+            for arg in split_arguments(arguments):
                 command.append(arg)
         launch_info["command"] = command
         return launch_info

@@ -1,7 +1,6 @@
 """Steam for Linux runner"""
 import os
 import time
-import shlex
 import subprocess
 
 from lutris.runners import NonInstallableRunnerError
@@ -9,6 +8,7 @@ from lutris.runners.runner import Runner
 from lutris.command import MonitoredCommand
 from lutris.util.log import logger
 from lutris.util import system
+from lutris.util.strings import split_arguments
 from lutris.util.steam.config import get_default_acf, read_config
 from lutris.util.steam.vdf import to_vdf
 from lutris.util.steam.appmanifest import get_path_from_appmanifest
@@ -41,7 +41,6 @@ class steam(Runner):
     human_name = "Steam"
     platforms = ["Linux"]
     runner_executable = "steam"
-    runnable_alone = True
     game_options = [
         {
             "option": "appid",
@@ -144,6 +143,10 @@ class steam(Runner):
         self.original_steampid = None
 
     @property
+    def runnable_alone(self):
+        return not system.LINUX_SYSTEM.is_flatpak
+
+    @property
     def appid(self):
         return self.game_config.get("appid") or ""
 
@@ -186,6 +189,9 @@ class steam(Runner):
                 return path[: -len("SteamApps")]
 
     def get_executable(self):
+        if system.LINUX_SYSTEM.is_flatpak:
+            # Use xdg-open for Steam URIs in Flatpak
+            return system.find_executable("xdg-open")
         if self.runner_config.get("lsi_steam") and system.find_executable("lsi-steam"):
             return system.find_executable("lsi-steam")
         runner_executable = self.runner_config.get("runner_executable")
@@ -206,9 +212,11 @@ class steam(Runner):
     def launch_args(self):
         """Provide launch arguments for Steam"""
         args = [self.get_executable()]
+        if system.LINUX_SYSTEM.is_flatpak:
+            return args
         if self.runner_config.get("start_in_big_picture"):
             args.append("-bigpicture")
-        return args + shlex.split(self.runner_config.get("args") or "")
+        return args + split_arguments(self.runner_config.get("args") or "")
 
     def get_env(self):
         env = super(steam, self).get_env()
@@ -316,6 +324,16 @@ class steam(Runner):
         else:
             # Start through steam
 
+            if system.LINUX_SYSTEM.is_flatpak:
+                if game_args:
+                    steam_uri = "steam://run/%s//%s/" % (self.appid, game_args)
+                else:
+                    steam_uri = "steam://rungameid/%s" % self.appid
+                return {
+                    "command": self.launch_args + [steam_uri],
+                    "env": self.get_env(),
+                }
+
             # Get current steam pid to act as the root pid instead of lutris
             self.original_steampid = get_steam_pid()
             command = self.launch_args
@@ -327,7 +345,7 @@ class steam(Runner):
                 command.append(self.appid)
 
         if game_args:
-            for arg in shlex.split(game_args):
+            for arg in split_arguments(game_args):
                 command.append(arg)
 
         return {

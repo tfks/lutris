@@ -1,3 +1,4 @@
+"""Discord integration"""
 import asyncio
 import time
 
@@ -12,9 +13,7 @@ from lutris.util.log import logger
 
 
 class DiscordPresence(object):
-    """This class provides rich presence integration
-       with Discord for games.
-    """
+    """Provide rich presence integration with Discord for games"""
 
     def __init__(self):
         self.available = bool(PyPresence)
@@ -30,11 +29,7 @@ class DiscordPresence(object):
         self.custom_runner_name = ''
         self.rpc_enabled = True
 
-    def load_from_config(self, config):
-        """Loads
-        """
-
-    def ensure_discord_connected(self):
+    def connect(self):
         """Make sure we are actually connected before trying to send requests"""
         logger.debug("Ensuring connected.")
         if self.presence_connected:
@@ -46,15 +41,16 @@ class DiscordPresence(object):
                 logger.debug("Attempting to connect.")
                 self.rpc_client.connect()
                 self.presence_connected = True
-            except Exception as ex:
-                logger.exception("Unable to reach Discord.  Skipping update: %s", ex)
-                self.ensure_discord_disconnected()
+            except (ConnectionError, FileNotFoundError):
+                logger.error("Could not connect to Discord")
         return self.presence_connected
 
-    def ensure_discord_disconnected(self):
-        """Ensure we are definitely disconnected and fix broken event loop from pypresence"""
-        logger.debug("Ensuring disconnected.")
-        if self.rpc_client is not None:
+    def disconnect(self):
+        """Ensure we are definitely disconnected and fix broken event loop from pypresence
+        That method is a huge mess of non-deterministic bs and should be nuked from orbit.
+        """
+        logger.debug("Disconnecting from Discord")
+        if self.rpc_client:
             try:
                 self.rpc_client.close()
             except Exception as e:
@@ -91,8 +87,7 @@ class DiscordPresence(object):
             return
         if self.rpc_enabled:
             self.last_rpc = int(time.time())
-            connected = self.ensure_discord_connected()
-            if not connected:
+            if not self.connect():
                 return
             try:
                 state_text = "via %s" % self.runner_name if self.show_runner else "  "
@@ -105,11 +100,10 @@ class DiscordPresence(object):
     def clear_discord_rich_presence(self):
         """Dispatch a request to Discord to clear presence"""
         if self.rpc_enabled:
-            connected = self.ensure_discord_connected()
-            if connected:
+            if self.connect():
                 try:
                     logger.info('Attempting to clear Discord status.')
                     self.rpc_client.clear()
-                except PyPresenceException as e:
-                    logger.error("Unable to clear Discord: %s", e)
-                    self.ensure_discord_disconnected()
+                except PyPresenceException as ex:
+                    logger.error("Unable to clear Discord: %s", ex)
+                    self.disconnect()

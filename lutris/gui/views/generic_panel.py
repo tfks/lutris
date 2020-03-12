@@ -51,6 +51,8 @@ class GenericPanel(Gtk.Fixed):
     def set_background(self):
         """Return the background image for the panel"""
         bg_path = get_pixbuf_for_panel(self.background_id)
+        if not bg_path:
+            return
 
         style = Gtk.StyleContext()
         style.add_class(Gtk.STYLE_CLASS_VIEW)
@@ -78,6 +80,9 @@ class GenericPanel(Gtk.Fixed):
             running_label.set_markup("<b>Playing:</b>")
             self.put(running_label, 12, 355)
             self.put(self.get_running_games(), 12, 377)
+
+    def refresh(self):
+        self.place_content()
 
     def get_preferences_button(self):
         preferences_button = Gtk.Button.new_from_icon_name(

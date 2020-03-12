@@ -22,6 +22,7 @@ import signal
 import sys
 import gettext
 from gettext import gettext as _
+import tempfile
 
 import gi
 
@@ -33,9 +34,10 @@ from gi.repository import Gio, GLib, Gtk
 from lutris import pga
 from lutris.game import Game
 from lutris import settings
-from lutris.gui.dialogs import ErrorDialog, InstallOrPlayDialog
+from lutris.gui.dialogs import ErrorDialog, InstallOrPlayDialog, GtkBuilderDialog
 from lutris.gui.dialogs.issue import IssueReportWindow
 from lutris.gui.installerwindow import InstallerWindow
+from lutris.gui.widgets.status_icon import LutrisStatusIcon
 from lutris.migrations import migrate
 from lutris.command import exec_command
 from lutris.util.steam.appmanifest import AppManifest, get_appmanifests
@@ -44,6 +46,7 @@ from lutris.util import datapath
 from lutris.util import log
 from lutris.util.jobs import AsyncCall
 from lutris.util.log import logger
+from lutris.util.http import Request, HTTPError
 from lutris.api import parse_installer_url
 from lutris.startup import init_lutris, run_all_checks
 from lutris.util.wine.dxvk import init_dxvk_versions
@@ -64,6 +67,7 @@ class Application(Gtk.Application):
         GLib.set_application_name(_("Lutris"))
         self.running_games = Gio.ListStore.new(Game)
         self.window = None
+        self.app_windows = {}
         self.tray = None
         self.css_provider = Gtk.CssProvider.new()
         self.run_in_background = False
@@ -159,15 +163,6 @@ class Application(Gtk.Application):
         self.add_action(action)
         self.add_accelerator("<Primary>q", "app.quit")
 
-        builder = Gtk.Builder.new_from_file(
-            os.path.join(datapath.get(), "ui", "menus.ui")
-        )
-        appmenu = builder.get_object("app-menu")
-        self.set_app_menu(appmenu)
-
-        menubar = builder.get_object("menubar")
-        self.set_menubar(menubar)
-
     def do_activate(self):
         if not self.window:
             self.window = LutrisWindow(application=self)
@@ -181,6 +176,22 @@ class Application(Gtk.Application):
             # Reset run in background to False. Future calls will set it
             # accordingly
             self.run_in_background = False
+
+    def show_window(self, window_class, **kwargs):
+        """Instanciate a window keeping 1 instance max"""
+        window_key = str(window_class) + str(kwargs)
+        if self.app_windows.get(window_key):
+            self.app_windows[window_key].present()
+        else:
+            window_inst = window_class(application=self, **kwargs)
+            window_inst.connect("destroy", self.on_app_window_destroyed, str(kwargs))
+            self.app_windows[window_key] = window_inst
+
+    def on_app_window_destroyed(self, app_window, kwargs_str):
+        """Remove the reference to the window when it has been destroyed"""
+        window_key = str(app_window.__class__) + kwargs_str
+        del self.app_windows[window_key]
+        return True
 
     @staticmethod
     def _print(command_line, string):
@@ -269,8 +280,27 @@ class Application(Gtk.Application):
         installer_file = None
         if options.contains("install"):
             installer_file = options.lookup_value("install").get_string()
-            installer_file = os.path.abspath(installer_file)
-            action = "install"
+            if installer_file.startswith(("http:", "https:")):
+                try:
+                    request = Request(installer_file).get()
+                except HTTPError:
+                    self._print(command_line, "Failed to download %s" % installer_file)
+                    return 1
+                try:
+                    headers = dict(request.response_headers)
+                    file_name = headers["Content-Disposition"].split("=", 1)[-1]
+                except (KeyError, IndexError):
+                    file_name = os.path.basename(installer_file)
+                file_path = os.path.join(tempfile.gettempdir(), file_name)
+                self._print(command_line, "download %s to %s started" % (installer_file, file_path))
+                with open(file_path, 'wb') as dest_file:
+                    dest_file.write(request.content)
+                installer_file = file_path
+                action = "install"
+            else:
+                installer_file = os.path.abspath(installer_file)
+                action = "install"
+
             if not os.path.isfile(installer_file):
                 self._print(command_line, "No such file: %s" % installer_file)
                 return 1
@@ -301,6 +331,7 @@ class Application(Gtk.Application):
 
         # Graphical commands
         self.activate()
+        self.set_tray_icon()
 
         if not action:
             if db_game and db_game["installed"]:
@@ -318,12 +349,12 @@ class Application(Gtk.Application):
                 action = "install"
 
         if action == "install":
-            InstallerWindow(
+            self.show_window(
+                InstallerWindow,
+                parent=self.window,
                 game_slug=game_slug,
                 installer_file=installer_file,
                 revision=revision,
-                parent=self.window,
-                application=self,
             )
         elif action in ("rungame", "rungameid"):
             if not db_game or not db_game["id"]:
@@ -342,6 +373,9 @@ class Application(Gtk.Application):
         game.load_config()  # Reload the config before launching it.
         game.play()
 
+        if settings.read_setting("hide_client_on_game_start") == "True":
+            self.window.hide()  # Hide launcher window
+
     def get_game_by_id(self, game_id):
         for i in range(self.running_games.get_n_items()):
             game = self.running_games.get_item(i)
@@ -356,10 +390,17 @@ class Application(Gtk.Application):
 
     def on_game_stop(self, game):
         """Callback to remove the game from the running games"""
+        game.disconnect_by_func(self.on_game_stop)
         game_index = self.get_game_index(game.id)
         if game_index is not None:
             self.running_games.remove(game_index)
         game.emit("game-stopped", game.id)
+
+        if settings.read_setting("hide_client_on_game_start") == "True":
+            self.window.show()  # Show launcher window
+        elif not self.window.is_visible():
+            if self.running_games.get_n_items() == 0:
+                self.quit()
 
     @staticmethod
     def get_lutris_action(url):
@@ -441,3 +482,11 @@ class Application(Gtk.Application):
         Gtk.Application.do_shutdown(self)
         if self.window:
             self.window.destroy()
+
+    def set_tray_icon(self):
+        """Creates or destroys a tray icon for the application"""
+        active = settings.read_setting("show_tray_icon", default="false") == "true"
+        if active and not self.tray:
+            self.tray = LutrisStatusIcon(application=self)
+        if self.tray:
+            self.tray.set_visible(active)
