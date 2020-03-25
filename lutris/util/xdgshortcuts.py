@@ -22,7 +22,8 @@ def get_xdg_entry(directory):
     }
     directory = directory.upper()
     if directory not in special_dir.keys():
-        raise ValueError("Only those folders are supported " + special_dir.keys())
+        raise ValueError(directory + " not supported. Only those folders are supported: " +
+                         ", ".join(special_dir.keys()))
     return GLib.get_user_special_dir(special_dir[directory])
 
 
@@ -74,9 +75,13 @@ def create_launcher(game_slug, game_id, game_name, desktop=False, menu=False):
     )
 
     if desktop:
+        if not os.path.exists(desktop_dir):
+            os.mkdir(desktop_dir)
         shutil.copy(tmp_launcher_path, os.path.join(desktop_dir, launcher_filename))
     if menu:
         menu_path = os.path.join(GLib.get_user_data_dir(), "applications")
+        if not os.path.exists(menu_path):
+            os.mkdir(menu_path)
         shutil.copy(tmp_launcher_path, os.path.join(menu_path, launcher_filename))
     os.remove(tmp_launcher_path)
 

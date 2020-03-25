@@ -126,7 +126,9 @@ class wine(Runner):
 
     def __init__(self, config=None):
         super(wine, self).__init__(config)
-        self.dll_overrides = {}
+        self.dll_overrides = {
+            "winemenubuilder.exe": "d"
+        }
 
         def get_wine_version_choices():
             version_choices = [("Custom (select executable below)", "custom")]
@@ -655,6 +657,7 @@ class wine(Runner):
             executable,
             wine_path=self.get_executable(),
             prefix=self.prefix_path,
+            working_dir=self.prefix_path,
             config=self,
             env=self.get_env(os_env=True),
         )
@@ -805,13 +808,11 @@ class wine(Runner):
             overrides = self.runner_config["overrides"]
         except KeyError:
             overrides = {}
-        else:
-            if not isinstance(overrides, dict):
-                logger.warning("DLL overrides is not a mapping: %s", overrides)
-                overrides = {}
-            else:
-                overrides = overrides.copy()
+        if not isinstance(overrides, dict):
+            logger.warning("DLL overrides is not a mapping: %s", overrides)
+            overrides = {}
 
+        overrides = overrides.copy()
         overrides.update(self.dll_overrides)
         return overrides
 
