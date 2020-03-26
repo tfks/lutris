@@ -18,23 +18,75 @@ class GamePanel(GenericPanel):
         self.game_actions = game_actions
         self.game = game_actions.game
         super().__init__()
+        self.set_margin_left(10)
+        self.set_margin_right(10)
         self.game.connect("game-start", self.on_game_start)
         self.game.connect("game-started", self.on_game_started)
         self.game.connect("game-stopped", self.on_game_stop)
 
     def place_content(self):
-        self.put(self.get_close_button(), 276, 16)
-        self.put(self.get_icon(), 12, 16)
-        self.put(self.get_title_label(), 50, 20)
-        labels_x = 50
+        vbox = Gtk.VBox(spacing=0, visible=True)
+
+        """Add all controls to a vertical box"""
+        hbox_top_buttons = Gtk.Box(spacing=6, visible=True)
+
+        title_label = Gtk.Label()
+
+        self.set_title_label_styles(title_label)
+
+        hbox_top_buttons.pack_start(self.get_icon(), False, False, 6)
+        hbox_top_buttons.pack_start(title_label, True, True, 0)
+        hbox_top_buttons.pack_start(self.get_close_button(), False, False, 6)
+
+        hbox_top_buttons.set_center_widget(title_label)
+
+        vbox.pack_start(hbox_top_buttons, False, False, 6)
+
         if self.game.is_installed:
-            self.put(self.get_runner_label(), labels_x - 23, 64)
+            vbox.pack_start(self.get_runner_label(), False, False, 2)
         if self.game.playtime:
-            self.put(self.get_playtime_label(), labels_x, 86)
+            vbox.pack_start(self.get_playtime_label(), False, False, 2)
         if self.game.lastplayed:
-            self.put(self.get_last_played_label(), labels_x, 108)
-        self.buttons = self.get_buttons()
-        self.place_buttons(145)
+            vbox.pack_start(self.get_last_played_label(), False, False, 2)
+
+        self.play_control_buttons = self.get_buttons_play_control()
+
+        for action_id, button in self.play_control_buttons.items():
+            vbox.pack_start(button, False, False, 6)
+
+        hbox_runners = Gtk.Box(spacing=0, visible=True)
+        hbox_runners.set_size_request(-1, 25)
+
+        self.buttons_for_runner = self.get_buttons_for_runner()
+
+        for action_id, button in self.buttons_for_runner.items():
+            hbox_runners.pack_start(button, True, True, 4)
+
+        vbox.pack_start(hbox_runners, False, True, 0)
+
+        label_game = Gtk.Label(visible=True)
+        label_game.set_markup("<b>{}</b>".format("Game options"))
+        label_game.set_size_request(-1, 25)
+
+        vbox.pack_start(label_game, True, True, 6)
+
+        self.buttons_game_actions = self.get_buttons_game()
+
+        for action_id, button in self.buttons_game_actions.items():
+            vbox.pack_start(button, False, False, 6)
+
+        label_other = Gtk.Label(visible=True)
+        label_other.set_markup("<b>{}</b>".format("Other options"))
+        label_other.set_size_request(-1, 25)
+
+        vbox.pack_start(label_other, True, True, 6)
+
+        self.buttons_other = self.get_buttons_other_actions()
+
+        for action_id, button in self.buttons_other.items():
+            vbox.pack_start(button, False, False, 6)
+
+        self.pack_start(vbox, True, True, 0)
 
     def refresh(self):
         """Redraw the panel"""
@@ -63,16 +115,14 @@ class GamePanel(GenericPanel):
         icon.show()
         return icon
 
-    def get_title_label(self):
-        """Return the label with the game's title"""
-        title_label = Gtk.Label()
+    def set_title_label_styles(self, title_label):
+        """Style the label with the game's title"""
         title_label.set_markup(
             "<span font_desc='16'>%s</span>" % gtk_safe(self.game.name)
         )
         title_label.set_ellipsize(Pango.EllipsizeMode.END)
-        title_label.set_size_request(226, -1)
-        title_label.set_alignment(0, 0.5)
-        title_label.set_justify(Gtk.Justification.LEFT)
+        #title_label.set_alignment(0, 0.5)
+        title_label.set_justify(Gtk.Justification.CENTER)
         title_label.show()
         return title_label
 
@@ -83,13 +133,19 @@ class GamePanel(GenericPanel):
             Gtk.IconSize.MENU,
         )
         runner_icon.show()
+        runner_icon.set_size_request(-1, 25);
+
         runner_label = Gtk.Label()
         runner_label.show()
         runner_label.set_markup("<b>%s</b>" % gtk_safe(self.game.platform))
+        runner_label.set_size_request(-1, 25)
+
         runner_box = Gtk.Box(spacing=6)
-        runner_box.add(runner_icon)
-        runner_box.add(runner_label)
+        runner_box.pack_start(runner_icon, False, False, 0)
+        runner_box.pack_start(runner_label, False, False, 0)
+        runner_box.set_size_request(-1, 25)
         runner_box.show()
+
         return runner_box
 
     def get_playtime_label(self):
@@ -99,11 +155,13 @@ class GamePanel(GenericPanel):
         playtime_label.set_markup(
             "Time played: <b>%s</b>" % self.game.formatted_playtime
         )
+        playtime_label.set_size_request(-1, 25)
         return playtime_label
 
     def get_last_played_label(self):
         """Return the label containing the last played info"""
         last_played_label = Gtk.Label()
+        last_played_label.set_size_request(-1, 25)
         last_played_label.show()
         lastplayed = datetime.fromtimestamp(self.game.lastplayed)
         last_played_label.set_markup(
@@ -120,36 +178,70 @@ class GamePanel(GenericPanel):
             return None
         return runner.context_menu_entries
 
-    def get_buttons(self):
-        """Return a dictionary of buttons to use in the panel"""
-        displayed = self.game_actions.get_displayed_entries()
+    def get_buttons_play_control(self):
+        displayed = self.game_actions.get_displayed_entries_play_controls()
+        buttons = {}
+        for action in self.game_actions.get_play_control_actions():
+            action_id, label, callback = action
+            button = Gtk.Button(label)
+            button.set_size_request(100, 42)
+            if displayed.get(action_id):
+                button.show()
+            else:
+                button.hide()
+            buttons[action_id] = button
+        return buttons
+
+    def get_buttons_for_runner(self):
+        displayed = self.game_actions.get_displayed_entries_runner_actions()
         icon_map = {
             "configure": "preferences-system-symbolic",
             "browse": "system-file-manager-symbolic",
-            "show_logs": "utilities-terminal-symbolic",
-            "remove": "user-trash-symbolic",
+            "show_logs": "utilities-terminal-symbolic"
         }
         buttons = {}
-        for action in self.game_actions.get_game_actions():
+        for action in self.game_actions.get_runner_actions():
             action_id, label, callback = action
             if action_id in icon_map:
                 button = Gtk.Button.new_from_icon_name(
                     icon_map[action_id], Gtk.IconSize.MENU
                 )
                 button.set_tooltip_text(label)
-                button.set_size_request(32, 32)
+                button.set_size_request(-1, 32)
             else:
-                if action_id in ("play", "stop", "install"):
-                    button = Gtk.Button(label)
-                    button.set_size_request(146, 42)
-                else:
-                    button = get_link_button(label)
+                button = get_link_button(label)
 
             if displayed.get(action_id):
                 button.show()
             else:
                 button.hide()
             buttons[action_id] = button
+        return buttons
+
+    #def get_buttons_main(self):
+    #    displayed = self.game_actions.get_displayed_entries_game()
+    #    buttons = {}
+    #    if self.game.runner_name and self.game.is_installed:
+    #        for entry in self.get_displayed_entries_game(self.game):
+    #            name, label, callback = entry
+    #            button = get_link_button(label)
+    #            button.show()
+    #            button.connect("clicked", callback)
+    #            buttons[name] = button
+    #    return buttons
+
+    def get_buttons_game(self):
+        """Return a dictionary of buttons to use in the panel"""
+        displayed = self.game_actions.get_displayed_entries_game()
+        buttons = {}
+        for action in self.game_actions.get_game_actions():
+            action_id, label, callback = action
+            button = get_link_button(label)
+
+            if displayed.get(action_id):
+                button.show()
+            else:
+                button.hide()
 
             if action_id in (
                     "desktop-shortcut",
@@ -160,16 +252,35 @@ class GamePanel(GenericPanel):
                 button.connect("clicked", self.on_shortcut_edited, action_id)
 
             button.connect("clicked", callback)
+            buttons[action_id] = button
 
-        if self.game.runner_name and self.game.is_installed:
-            for entry in self.get_runner_entries(self.game):
-                name, label, callback = entry
-                button = get_link_button(label)
-                button.show()
-                button.connect("clicked", callback)
-                buttons[name] = button
         return buttons
 
+    def get_buttons_other_actions(self):
+        displayed = self.game_actions.get_displayed_entries_other_actions()
+        icon_map = {
+            "remove": "user-trash-symbolic"
+        }
+        buttons = {}
+        for action in self.game_actions.get_other_actions():
+            action_id, label, callback = action
+            if action_id in icon_map:
+                button = Gtk.Button.new_from_icon_name(
+                    icon_map[action_id], Gtk.IconSize.MENU
+                )
+                button.set_tooltip_text(label)
+                button.set_size_request(32, 32)
+            else:
+                button = get_link_button(label)
+
+            if displayed.get(action_id):
+                button.show()
+            else:
+                button.hide()
+            buttons[action_id] = button
+        return buttons
+
+    """Obsolete"""
     def place_buttons(self, base_height):
         """Places all appropriate buttons in the panel"""
         play_x_offset = 87

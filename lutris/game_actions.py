@@ -46,8 +46,8 @@ class GameActions:
             self._game = None
             self.game_id = game_id
 
-    def get_game_actions(self):
-        """Return a list of game actions and their callbacks"""
+    def get_play_control_actions(self):
+        """Return a list of play control related actions and their callbacks"""
         return [
             (
                 "play", "Play",
@@ -58,28 +58,38 @@ class GameActions:
                 self.on_stop
             ),
             (
-                "show_logs", "Show logs",
-                self.on_show_logs
-            ),
-            (
                 "install", "Install",
                 self.on_install_clicked
-            ),
+            )
+        ]
+
+    def get_runner_actions(self):
+        """Return a list of main actions and their callbacks"""
+        return [
             (
-                "add", "Add installed game",
-                self.on_add_manually
+                "show_logs", "Show logs",
+                self.on_show_logs
             ),
             (
                 "configure", "Configure",
                 self.on_edit_game_configuration
             ),
             (
-                "execute-script", "Execute script",
-                self.on_execute_script_clicked
-            ),
-            (
                 "browse", "Browse files",
                 self.on_browse_files
+            )
+        ]
+
+    def get_game_actions(self):
+        """Return a list of game actions and their callbacks"""
+        return [
+            (
+                "add", "Add installed game",
+                self.on_add_manually
+            ),
+            (
+                "execute-script", "Execute script",
+                self.on_execute_script_clicked
             ),
             (
                 "desktop-shortcut", "Create desktop shortcut",
@@ -102,10 +112,6 @@ class GameActions:
                 self.on_install_clicked
             ),
             (
-                "remove", "Remove",
-                self.on_remove_game
-            ),
-            (
                 "view", "View on Lutris.net",
                 self.on_view_game
             ),
@@ -116,7 +122,16 @@ class GameActions:
             (
                 "unhide", "Unhide game from library",
                 self.on_unhide_game
-            ),
+            )
+        ]
+
+    def get_other_actions(self):
+        """Return a list of actions which are added to the bottom of the widget"""
+        return [
+            (
+                "remove", "Remove",
+                self.on_remove_game
+            )
         ]
 
     def on_hide_game(self, _widget):
@@ -145,15 +160,24 @@ class GameActions:
         """Returns whether a game is on the list of hidden games"""
         return game.id in pga.get_hidden_ids()
 
-    def get_displayed_entries(self):
+    def get_displayed_entries_play_controls(self):
+        return {
+            "install": not self.game.is_installed,
+            "play": self.game.is_installed and not self.is_game_running,
+            "stop": self.is_game_running
+        }
+
+    def get_displayed_entries_runner_actions(self):
+        return {
+            "show_logs": self.game.is_installed,
+            "configure": bool(self.game.is_installed),
+            "browse": self.game.is_installed and self.game.runner_name != "browser"
+        }
+
+    def get_displayed_entries_game(self):
         """Return a dictionary of actions that should be shown for a game"""
         return {
             "add": not self.game.is_installed and not self.game.is_search_result,
-            "install": not self.game.is_installed,
-            "play": self.game.is_installed and not self.is_game_running,
-            "stop": self.is_game_running,
-            "show_logs": self.game.is_installed,
-            "configure": bool(self.game.is_installed),
             "install_more": self.game.is_installed and not self.game.is_search_result,
             "execute-script": bool(
                 self.game.is_installed
@@ -175,11 +199,14 @@ class GameActions:
                 self.game.is_installed
                 and xdgshortcuts.menu_launcher_exists(self.game.slug, self.game.id)
             ),
-            "browse": self.game.is_installed and self.game.runner_name != "browser",
-            "remove": not self.game.is_search_result,
             "view": True,
             "hide": not GameActions.is_game_hidden(self.game),
             "unhide": GameActions.is_game_hidden(self.game)
+        }
+
+    def get_displayed_entries_other_actions(self):
+        return {
+            "remove": not self.game.is_search_result
         }
 
     def on_game_run(self, *_args):

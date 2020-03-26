@@ -25,7 +25,7 @@ from lutris.services import get_services_synced_at_startup, steam
 from lutris.vendor.gi_composites import GtkTemplate
 
 from lutris.gui import dialogs
-from lutris.gui.widgets.sidebar import SidebarListBox
+from lutris.gui.widgets.sidebar import SidebarContainer
 from lutris.gui.widgets.services import SyncServiceWindow
 from lutris.gui.dialogs.runners import RunnersDialog
 from lutris.gui.config.add_game import AddGameDialog
@@ -128,9 +128,9 @@ class LutrisWindow(Gtk.ApplicationWindow):
         self.website_search_toggle.set_image(lutris_icon)
         self.website_search_toggle.set_label("Search Lutris.net")
         self.website_search_toggle.set_tooltip_text("Search Lutris.net")
-        self.sidebar_listbox = SidebarListBox()
-        self.sidebar_listbox.set_size_request(250, -1)
-        self.sidebar_listbox.connect("selected-rows-changed", self.on_sidebar_changed)
+        self.sidebar_listbox = SidebarContainer(self)
+        self.sidebar_listbox.set_size_request(200, -1)
+        self.sidebar_listbox.set_visible(True)
         self.sidebar_scrolled.add(self.sidebar_listbox)
 
         self.game_panel = GenericPanel(application=self.application)
@@ -903,15 +903,6 @@ class LutrisWindow(Gtk.ApplicationWindow):
         # if we change the new attribute, we must set the old one to false
         if self.sidebar_visible:
             settings.write_setting("sidebar_visible", "false")
-
-    def on_sidebar_changed(self, widget):
-        row = widget.get_selected_row()
-        if row is None:
-            self.set_selected_filter(None, None)
-        elif row.type == "runner":
-            self.set_selected_filter(row.id, None)
-        else:
-            self.set_selected_filter(None, row.id)
 
     def set_selected_filter(self, runner, platform):
         """Filter the view to a given runner and platform"""

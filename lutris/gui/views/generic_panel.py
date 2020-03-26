@@ -27,7 +27,7 @@ LINKS = {
 }
 
 
-class GenericPanel(Gtk.Fixed):
+class GenericPanel(Gtk.Box):
     """Side panel displayed when no game is selected"""
 
     __gtype_name__ = "LutrisPanel"
@@ -38,7 +38,7 @@ class GenericPanel(Gtk.Fixed):
     def __init__(self, application=None):
         super().__init__(visible=True)
         self.application = application
-        self.set_size_request(320, -1)
+        #self.set_size_request(320, -1)
         self.get_style_context().add_class("game-panel")
         self.set_background()
         self.place_content()
@@ -69,17 +69,21 @@ class GenericPanel(Gtk.Fixed):
 
     def place_content(self):
         """Places widgets in the side panel"""
-        self.put(self.get_preferences_button(), 12, 12)
-        self.put(self.get_user_info_box(), 48, 16)
-
-        self.put(self.get_lutris_links(), 40, 80)
+        #self.put(self.get_preferences_button(), 12, 12)
+        self.pack_start(self.get_preferences_button(), False, False, 6)
+        #self.put(self.get_user_info_box(), 48, 16)
+        self.pack_start(self.get_user_info_box(), False, False, 6)
+        #self.put(self.get_lutris_links(), 40, 80)
+        self.pack_start(self.get_lutris_links(), False, False, 6)
 
         application = Gio.Application.get_default()
         if application.running_games.get_n_items():
             running_label = Gtk.Label(visible=True)
             running_label.set_markup("<b>Playing:</b>")
-            self.put(running_label, 12, 355)
-            self.put(self.get_running_games(), 12, 377)
+            #self.put(running_label, 12, 355)
+            self.pack_start(running_label, False, False, 6)
+            #self.put(self.get_running_games(), 12, 377)
+            self.pack_start(self.getrunnning_games(), False, False, 6)
 
     def refresh(self):
         self.place_content()

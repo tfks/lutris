@@ -130,8 +130,11 @@ class SidebarHeader(Gtk.Box):
 class SidebarListBox(Gtk.ListBox):
     __gtype_name__ = "LutrisSidebar"
 
-    def __init__(self):
+    lutris_window = None
+
+    def __init__(self, lutris_window):
         super().__init__()
+        self.lutris_window = lutris_window
         self.get_style_context().add_class("sidebar")
         self.installed_runners = []
         self.active_platforms = pga.get_used_platforms()
@@ -199,3 +202,41 @@ class SidebarListBox(Gtk.ListBox):
         self.installed_runners = [runner.name for runner in runners.get_installed()]
         self.active_platforms = pga.get_used_platforms()
         self.invalidate_filter()
+
+        self.connect("selected-rows-changed", self.on_sidebar_changed)
+
+    def on_sidebar_changed(self, widget):
+        row = widget.get_selected_row()
+        if row is None:
+            self.lutris_window.set_selected_filter(None, None)
+        elif row.type == "runner":
+            self.lutris_window.set_selected_filter(row.id, None)
+        else:
+            self.lutris_window.set_selected_filter(None, row.id)
+
+
+class SidebarContainer(Gtk.Fixed):
+    __gtype_name__ = "LutrisSidebarContainer"
+
+    lutris_window = None
+
+    def __init__(self, lutris_window):
+        super().__init__()
+        self.lutris_window = lutris_window
+        self.place_content()
+
+    def place_content(self):
+        box = box = Gtk.VBox(spacing=12, visible=True)
+        box.set_size_request(200, -1)
+
+        label_header = Gtk.Label(visible=True)
+        label_header.set_markup("<b>%s</b>" % "")
+        label_header.set_size_request(200, 18)
+        box.pack_start(label_header, True, True, 0)
+
+        sidebarControl = SidebarListBox(self.lutris_window)
+        sidebarControl.set_size_request(200, -1)
+        sidebarControl.set_visible(True)
+        box.pack_start(sidebarControl, True, True, 0)
+
+        self.add(box)
