@@ -12,6 +12,7 @@ PYSMELLTAGS
 lutris.e4p
 .coverage
 pga.db
+venv
 tests/coverage/*
 /dist
 /lutris.egg-info

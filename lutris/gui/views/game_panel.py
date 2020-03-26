@@ -40,51 +40,98 @@ class GamePanel(GenericPanel):
 
         hbox_top_buttons.set_center_widget(title_label)
 
+        hbox_top_buttons.set_size_request(-1, 25)
+
         vbox.pack_start(hbox_top_buttons, False, False, 6)
 
-        if self.game.is_installed:
-            vbox.pack_start(self.get_runner_label(), False, False, 2)
-        if self.game.playtime:
-            vbox.pack_start(self.get_playtime_label(), False, False, 2)
-        if self.game.lastplayed:
-            vbox.pack_start(self.get_last_played_label(), False, False, 2)
+        vbox_game_labels = Gtk.VBox(spacing=0, visible=True)
 
-        self.play_control_buttons = self.get_buttons_play_control()
+        if self.game.is_installed:
+            vbox_game_labels.pack_start(self.get_runner_label(), False, False, 2)
+        if self.game.playtime:
+            vbox_game_labels.pack_start(self.get_playtime_label(), False, False, 2)
+        if self.game.lastplayed:
+            vbox_game_labels.pack_start(self.get_last_played_label(), False, False, 2)
+
+        vbox_game_labels.set_size_request(-1, 25)
+
+        vbox.pack_start(vbox_game_labels, False, False, 6)
+
+        """Play controls"""
+        vbox_play_control_buttons = Gtk.VBox(spacing=0, visible=True)
+
+        self.play_control_buttons = self.get_buttons_play_control_actions()
 
         for action_id, button in self.play_control_buttons.items():
-            vbox.pack_start(button, False, False, 6)
+            button.set_size_request(-1, 20)
+            vbox_play_control_buttons.pack_start(button, False, False, 6)
 
+        vbox_play_control_buttons.set_size_request(-1, 25)
+
+        vbox.pack_start(vbox_play_control_buttons, False, False, 0)
+
+        """Runners"""
         hbox_runners = Gtk.Box(spacing=0, visible=True)
-        hbox_runners.set_size_request(-1, 25)
 
-        self.buttons_for_runner = self.get_buttons_for_runner()
+        self.buttons_for_runner = self.get_buttons_for_runner_actions()
 
         for action_id, button in self.buttons_for_runner.items():
+            button.set_size_request(30, 15)
             hbox_runners.pack_start(button, True, True, 4)
 
-        vbox.pack_start(hbox_runners, False, True, 0)
+        hbox_runners.set_size_request(-1, 20)
+
+        vbox.pack_start(hbox_runners, False, False, 0)
+
+        """Game options"""
+        vbox_game_options = Gtk.VBox(spacing=0, visible=True)
 
         label_game = Gtk.Label(visible=True)
         label_game.set_markup("<b>{}</b>".format("Game options"))
         label_game.set_size_request(-1, 25)
 
-        vbox.pack_start(label_game, True, True, 6)
+        vbox_game_options.pack_start(label_game, False, False, 6)
 
-        self.buttons_game_actions = self.get_buttons_game()
+        self.buttons_game_actions = self.get_buttons_game_actions()
 
         for action_id, button in self.buttons_game_actions.items():
-            vbox.pack_start(button, False, False, 6)
+            vbox_game_options.pack_start(button, False, False, 6)
+
+        vbox.pack_start(vbox_game_options, False, False, 0)
+
+        vbox.set_center_widget(vbox_game_options)
+
+        """WINE actions"""
+        vbox_wine = Gtk.VBox(spacing=0, visible=True)
+
+        label_wine = Gtk.Label(visible=True)
+        label_wine.set_markup("<b>{}</b>".format("Wine options"))
+        label_wine.set_size_request(-1, 25)
+
+        vbox_wine.pack_start(label_wine, True, True, 6)
+
+        self.buttons_wine_actions = self.get_buttons_for_wine_actions()
+
+        for action_id, button in self.buttons_wine_actions.items():
+            vbox_wine.pack_start(button, False, False, 0)
+
+        vbox.pack_start(vbox_wine, False, False, 0)
+
+        """Other actions"""
+        vbox_other = Gtk.VBox(spacing=0, visible=True)
 
         label_other = Gtk.Label(visible=True)
         label_other.set_markup("<b>{}</b>".format("Other options"))
         label_other.set_size_request(-1, 25)
 
-        vbox.pack_start(label_other, True, True, 6)
+        vbox_other.pack_start(label_other, False, False, 6)
 
         self.buttons_other = self.get_buttons_other_actions()
 
         for action_id, button in self.buttons_other.items():
-            vbox.pack_start(button, False, False, 6)
+            vbox_other.pack_end(button, False, False, 6)
+
+        vbox.pack_start(vbox_other, True, True, 0)
 
         self.pack_start(vbox, True, True, 0)
 
@@ -133,7 +180,7 @@ class GamePanel(GenericPanel):
             Gtk.IconSize.MENU,
         )
         runner_icon.show()
-        runner_icon.set_size_request(-1, 25);
+        runner_icon.set_size_request(-1, 25)
 
         runner_label = Gtk.Label()
         runner_label.show()
@@ -178,7 +225,7 @@ class GamePanel(GenericPanel):
             return None
         return runner.context_menu_entries
 
-    def get_buttons_play_control(self):
+    def get_buttons_play_control_actions(self):
         displayed = self.game_actions.get_displayed_entries_play_controls()
         buttons = {}
         for action in self.game_actions.get_play_control_actions():
@@ -189,10 +236,11 @@ class GamePanel(GenericPanel):
                 button.show()
             else:
                 button.hide()
+            button.connect("clicked", callback)
             buttons[action_id] = button
         return buttons
 
-    def get_buttons_for_runner(self):
+    def get_buttons_for_runner_actions(self):
         displayed = self.game_actions.get_displayed_entries_runner_actions()
         icon_map = {
             "configure": "preferences-system-symbolic",
@@ -215,22 +263,11 @@ class GamePanel(GenericPanel):
                 button.show()
             else:
                 button.hide()
+            button.connect("clicked", callback)
             buttons[action_id] = button
         return buttons
 
-    #def get_buttons_main(self):
-    #    displayed = self.game_actions.get_displayed_entries_game()
-    #    buttons = {}
-    #    if self.game.runner_name and self.game.is_installed:
-    #        for entry in self.get_displayed_entries_game(self.game):
-    #            name, label, callback = entry
-    #            button = get_link_button(label)
-    #            button.show()
-    #            button.connect("clicked", callback)
-    #            buttons[name] = button
-    #    return buttons
-
-    def get_buttons_game(self):
+    def get_buttons_game_actions(self):
         """Return a dictionary of buttons to use in the panel"""
         displayed = self.game_actions.get_displayed_entries_game()
         buttons = {}
@@ -247,13 +284,24 @@ class GamePanel(GenericPanel):
                     "desktop-shortcut",
                     "rm-desktop-shortcut",
                     "menu-shortcut",
-                    "rm-menu-shortcut",
+                    "rm-menu-shortcut"
             ):
                 button.connect("clicked", self.on_shortcut_edited, action_id)
 
             button.connect("clicked", callback)
             buttons[action_id] = button
 
+        return buttons
+
+    def get_buttons_for_wine_actions(self):
+        buttons = {}
+        if self.game.runner_name and self.game.is_installed:
+            for entry in self.get_runner_entries(self.game):
+                name, label, callback = entry
+                button = get_link_button(label)
+                button.show()
+                button.connect("clicked", callback)
+                buttons[name] = button
         return buttons
 
     def get_buttons_other_actions(self):
@@ -277,64 +325,9 @@ class GamePanel(GenericPanel):
                 button.show()
             else:
                 button.hide()
+            button.connect("clicked", callback)
             buttons[action_id] = button
         return buttons
-
-    """Obsolete"""
-    def place_buttons(self, base_height):
-        """Places all appropriate buttons in the panel"""
-        play_x_offset = 87
-        icon_offset = 6
-        icon_width = 32
-        icon_start = 84
-        icons_y_offset = 60
-        buttons_x_offset = 28
-        extra_button_start = 540  # Y position for runner actions
-        extra_button_index = 0
-        for action_id, button in self.buttons.items():
-            position = None
-            if action_id in ("play", "stop", "install"):
-                position = (play_x_offset, base_height)
-            if action_id == "configure":
-                position = (icon_start, base_height + icons_y_offset)
-            if action_id == "browse":
-                position = (
-                    icon_start + icon_offset + icon_width,
-                    base_height + icons_y_offset,
-                )
-            if action_id == "show_logs":
-                position = (
-                    icon_start + icon_offset * 2 + icon_width * 2,
-                    base_height + icons_y_offset,
-                )
-            if action_id == "remove":
-                position = (
-                    icon_start + icon_offset * 3 + icon_width * 3,
-                    base_height + icons_y_offset,
-                )
-
-            current_y = base_height + 150
-            if action_id == "execute-script":
-                position = (buttons_x_offset, current_y)
-            if action_id in ("add", "install_more"):
-                position = (buttons_x_offset, current_y + 40)
-            if action_id == "view":
-                position = (buttons_x_offset, current_y + 80)
-            if action_id in ("desktop-shortcut", "rm-desktop-shortcut"):
-                position = (buttons_x_offset, current_y + 120)
-            if action_id in ("menu-shortcut", "rm-menu-shortcut"):
-                position = (buttons_x_offset, current_y + 160)
-            if action_id in ("hide", "unhide"):
-                position = (buttons_x_offset, current_y + 200)
-
-            if not position:
-                position = (
-                    buttons_x_offset,
-                    extra_button_start + extra_button_index * 40,
-                )
-                extra_button_index += 1
-
-            self.put(button, position[0], position[1])
 
     def on_shortcut_edited(self, _widget, action_id):
         """Callback for shortcut buttons"""
