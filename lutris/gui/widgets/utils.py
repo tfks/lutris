@@ -209,6 +209,22 @@ def get_builder_from_file(glade_file):
     builder.add_from_file(ui_filename)
     return builder
 
+def get_default_button(text, icon_identifier):
+    button = None
+    if icon_identifier != "":
+        button = Gtk.Button.new_from_icon_name(icon_identifier, Gtk.IconSize.MENU)
+    else:
+        button = Gtk.Button(text, visible=True)
+    return button
+
+def get_default_link_button(text):
+    """Return a transparent text button for the side panels"""
+    button = Gtk.Button(text, visible=True)
+    button.props.relief = Gtk.ReliefStyle.NONE
+    #button.get_children()[0].set_alignment(0, 0.5)
+    button.get_style_context().add_class("panel-button")
+    button.set_size_request(-1, 24)
+    return button
 
 def get_link_button(text):
     """Return a transparent text button for the side panels"""

@@ -42,7 +42,7 @@ class GamePanel(GenericPanel):
 
         hbox_top_buttons.set_size_request(-1, 25)
 
-        vbox.pack_start(hbox_top_buttons, False, False, 6)
+        vbox.pack_start(hbox_top_buttons, False, False, 12)
 
         vbox_game_labels = Gtk.VBox(spacing=0, visible=True)
 
@@ -55,7 +55,7 @@ class GamePanel(GenericPanel):
 
         vbox_game_labels.set_size_request(-1, 25)
 
-        vbox.pack_start(vbox_game_labels, False, False, 6)
+        vbox.pack_start(vbox_game_labels, False, False, 12)
 
         """Play controls"""
         vbox_play_control_buttons = Gtk.VBox(spacing=0, visible=True)
@@ -66,25 +66,33 @@ class GamePanel(GenericPanel):
             button.set_size_request(-1, 20)
             vbox_play_control_buttons.pack_start(button, False, False, 6)
 
-        vbox_play_control_buttons.set_size_request(-1, 25)
+        #vbox_play_control_buttons.set_size_request(-1, 25)
 
-        vbox.pack_start(vbox_play_control_buttons, False, False, 0)
+        vbox.pack_start(vbox_play_control_buttons, False, False, 12)
 
         """Runners"""
-        hbox_runners = Gtk.Box(spacing=0, visible=True)
+        hbbox_runners = Gtk.HButtonBox(visible=True)
+
+        hbbox_runners.set_layout(Gtk.ButtonBoxStyle.EDGE)
+        hbbox_runners.set_spacing(4)
+
+        #hbox_runners = Gtk.Box(spacing=0, visible=True)
+
+        #hbox_runners.set_homogeneous(True)
 
         self.buttons_for_runner = self.get_buttons_for_runner_actions()
 
         for action_id, button in self.buttons_for_runner.items():
-            button.set_size_request(30, 15)
-            hbox_runners.pack_start(button, True, True, 4)
+            #button.set_size_request(30, 15)
+            #hbox_runners.pack_start(button, True, True, 4)
+            hbbox_runners.add(button)
 
-        hbox_runners.set_size_request(-1, 20)
+        #hbox_runners.set_size_request(-1, 20)
 
-        vbox.pack_start(hbox_runners, False, False, 0)
+        vbox.pack_start(hbbox_runners, False, False, 12)
 
         """Game options"""
-        vbox_game_options = Gtk.VBox(spacing=0, visible=True)
+        vbox_game_options = Gtk.VBox(spacing=4, visible=True)
 
         label_game = Gtk.Label(visible=True)
         label_game.set_markup("<b>{}</b>".format("Game options"))
@@ -97,7 +105,7 @@ class GamePanel(GenericPanel):
         for action_id, button in self.buttons_game_actions.items():
             vbox_game_options.pack_start(button, False, False, 6)
 
-        vbox.pack_start(vbox_game_options, False, False, 0)
+        vbox.pack_start(vbox_game_options, False, False, 12)
 
         vbox.set_center_widget(vbox_game_options)
 
@@ -115,7 +123,7 @@ class GamePanel(GenericPanel):
         for action_id, button in self.buttons_wine_actions.items():
             vbox_wine.pack_start(button, False, False, 0)
 
-        vbox.pack_start(vbox_wine, False, False, 0)
+        vbox.pack_start(vbox_wine, False, False, 12)
 
         """Other actions"""
         vbox_other = Gtk.VBox(spacing=0, visible=True)
@@ -124,14 +132,14 @@ class GamePanel(GenericPanel):
         label_other.set_markup("<b>{}</b>".format("Other options"))
         label_other.set_size_request(-1, 25)
 
-        vbox_other.pack_start(label_other, False, False, 6)
+        vbox_other.pack_start(label_other, False, False, 12)
 
         self.buttons_other = self.get_buttons_other_actions()
 
         for action_id, button in self.buttons_other.items():
             vbox_other.pack_end(button, False, False, 6)
 
-        vbox.pack_start(vbox_other, True, True, 0)
+        vbox.pack_start(vbox_other, True, True, 12)
 
         self.pack_start(vbox, True, True, 0)
 
@@ -169,7 +177,7 @@ class GamePanel(GenericPanel):
         )
         title_label.set_ellipsize(Pango.EllipsizeMode.END)
         #title_label.set_alignment(0, 0.5)
-        title_label.set_justify(Gtk.Justification.CENTER)
+        #title_label.set_justify(Gtk.Justification.CENTER)
         title_label.show()
         return title_label
 
@@ -231,7 +239,8 @@ class GamePanel(GenericPanel):
         for action in self.game_actions.get_play_control_actions():
             action_id, label, callback = action
             button = Gtk.Button(label)
-            button.set_size_request(100, 42)
+            button.set_tooltip_text(label)
+            button.set_size_request(32, 32)
             if displayed.get(action_id):
                 button.show()
             else:

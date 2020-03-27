@@ -10,6 +10,8 @@ from lutris.gui.widgets.utils import (
     get_pixbuf,
     get_main_window,
     open_uri,
+    get_default_button,
+    get_default_link_button,
     get_link_button,
 )
 from lutris.gui.config.system import SystemConfigDialog
@@ -69,32 +71,73 @@ class GenericPanel(Gtk.Box):
 
     def place_content(self):
         """Places widgets in the side panel"""
-        #self.put(self.get_preferences_button(), 12, 12)
-        self.pack_start(self.get_preferences_button(), False, False, 6)
-        #self.put(self.get_user_info_box(), 48, 16)
-        self.pack_start(self.get_user_info_box(), False, False, 6)
-        #self.put(self.get_lutris_links(), 40, 80)
-        self.pack_start(self.get_lutris_links(), False, False, 6)
+        vbox = Gtk.VBox(spacing=0, visible=True)
+
+        """Header"""
+        hbox_header = self.get_content_header()
+
+        vbox.pack_start(hbox_header, False, False, 6)
+
+        """Links"""
+        vbox.pack_start(self.get_lutris_links(), False, False, 6)
+
+        """Running games"""
+        vbox_running_games = Gtk.VBox(spacing=0, visible=True)
+
+        running_label = Gtk.Label(visible=True)
+        running_label.set_markup("<b>Playing</b>")
+        running_label.set_justify(Gtk.Justification.CENTER)
+        vbox_running_games.pack_start(running_label, False, False, 6)
 
         application = Gio.Application.get_default()
+
         if application.running_games.get_n_items():
-            running_label = Gtk.Label(visible=True)
-            running_label.set_markup("<b>Playing:</b>")
-            #self.put(running_label, 12, 355)
-            self.pack_start(running_label, False, False, 6)
-            #self.put(self.get_running_games(), 12, 377)
-            self.pack_start(self.getrunnning_games(), False, False, 6)
+            listbox = Gtk.ListBox(visible=True)
+            listbox.bind_model(self.application.running_games, self.create_list_widget)
+            listbox.connect('row-selected', self.on_running_game_select)
+            listbox.show()
+
+            vbox_running_games.pack_start(listbox, False, False, 6)
+
+        vbox.pack_start(vbox_running_games, True, True, 6)
+
+        """Buttons"""
+        vbox.pack_end(self.get_preferences_button(), False, False, 6)
+
+        vbox.set_center_widget(vbox_running_games)
+
+        self.pack_start(vbox, True, True, 6)
+
+    def get_content_header(self):
+        """Header"""
+        hbox_header = Gtk.Box(spacing=0, visible=True)
+
+        app_title_label = Gtk.Label(visible=True)
+
+        app_title_label.set_markup("<span font_desc='22'>Lutris</span>")
+        app_title_label.set_alignment(0, 0.5)
+
+        hbox_header.pack_start(app_title_label, True, True, 6)
+        hbox_header.pack_start(self.get_user_info_box(), False, False, 6)
+
+        hbox_header.set_center_widget(app_title_label)
+
+        return hbox_header
 
     def refresh(self):
+        """Redraw the panel"""
+        for child in self.get_children():
+            child.destroy()
         self.place_content()
 
     def get_preferences_button(self):
-        preferences_button = Gtk.Button.new_from_icon_name(
-            "preferences-system-symbolic", Gtk.IconSize.MENU
-        )
+        preferences_button = get_default_button("", "preferences-system-symbolic")
+        #preferences_button = Gtk.Button.new_from_icon_name(
+        #    "preferences-system-symbolic", Gtk.IconSize.MENU
+        #)
         preferences_button.set_tooltip_text("Preferences")
-        preferences_button.set_size_request(32, 32)
-        preferences_button.props.relief = Gtk.ReliefStyle.NONE
+        #preferences_button.set_size_request(32, 32)
+        #preferences_button.props.relief = Gtk.ReliefStyle.NONE
         preferences_button.connect("clicked", self.on_preferences_clicked)
         preferences_button.show()
         return preferences_button
@@ -106,22 +149,23 @@ class GenericPanel(Gtk.Box):
         box = Gtk.Box(
             spacing=6, margin_top=6, margin_bottom=6, margin_right=6, margin_left=6
         )
-        box.set_size_request(280, 32)
+        box.set_size_request(100, 32)
 
         icon = Gtk.Image.new_from_pixbuf(get_pixbuf_for_game(game.slug, "icon"))
         icon.show()
-        box.add(icon)
+        box.pack_start(icon, False, False, 2)
 
         game_label = Gtk.Label(game.name, visible=True)
         game_label.set_ellipsize(Pango.EllipsizeMode.END)
-        box.add(game_label)
+        box.pack_start(game_label, False, False, 2)
         box.game = game
 
         return box
 
     def get_user_info_box(self):
         user_box = Gtk.Box(spacing=6, visible=True)
-        user_box.set_size_request(254, 64)
+        #user_box.set_size_request(254, 64)
+        #user_box.set_size_request(-1, 64)
         if not system.path_exists(api.USER_INFO_FILE_PATH):
             return user_box
         if system.path_exists(api.USER_ICON_FILE_PATH):
@@ -164,36 +208,38 @@ class GenericPanel(Gtk.Box):
 
         donate_button = get_link_button("Support Lutris!")
         donate_button.connect("clicked", lambda *x: open_uri(LINKS["donate"]))
-        box.add(donate_button)
+        box.pack_start(donate_button, False, False, 6)
 
         help_label = Gtk.Label(visible=True)
-        help_label.set_markup("<b>Help:</b>")
-        help_label.set_alignment(0, 0.5)
-        help_label.set_margin_top(136)
-        box.add(help_label)
+        help_label.set_markup("<b>Help</b>")
+        help_label.set_justify(Gtk.Justification.CENTER)
+        box.pack_start(help_label, False, False, 6)
 
         help_box = Gtk.Box(spacing=6, visible=True)
-        forums_button = get_link_button("Forums")
-        forums_button.set_size_request(-1, -1)
-        forums_button.connect("clicked", lambda *x: open_uri(LINKS["forums"]))
-        help_box.add(forums_button)
-        irc_button = get_link_button("IRC")
-        irc_button.set_size_request(-1, -1)
-        irc_button.connect("clicked", lambda *x: open_uri(LINKS["irc"]))
-        help_box.add(irc_button)
-        discord_button = get_link_button("Discord")
-        discord_button.set_size_request(-1, -1)
-        discord_button.connect("clicked", lambda *x: open_uri(LINKS["discord"]))
-        help_box.add(discord_button)
-        box.add(help_box)
-        return box
 
-    def get_running_games(self):
-        listbox = Gtk.ListBox(visible=True)
-        listbox.bind_model(self.application.running_games, self.create_list_widget)
-        listbox.connect('row-selected', self.on_running_game_select)
-        listbox.show()
-        return listbox
+        forums_button = get_default_link_button("Forums")
+        #forums_button.set_size_request(-1, -1)
+        forums_button.get_children()[0].set_justify(Gtk.Justification.CENTER)
+        forums_button.connect("clicked", lambda *x: open_uri(LINKS["forums"]))
+        help_box.pack_start(forums_button, False, False, 4)
+
+        irc_button = get_default_link_button("IRC")
+        #irc_button.set_size_request(-1, -1)
+        irc_button.get_children()[0].set_justify(Gtk.Justification.CENTER)
+        irc_button.connect("clicked", lambda *x: open_uri(LINKS["irc"]))
+        help_box.pack_start(irc_button, True, True, 4)
+
+        discord_button = get_default_link_button("Discord")
+        #discord_button.set_size_request(-1, -1)
+        discord_button.get_children()[0].set_justify(Gtk.Justification.CENTER)
+        discord_button.connect("clicked", lambda *x: open_uri(LINKS["discord"]))
+        help_box.pack_start(discord_button, False, False, 4)
+
+        help_box.set_homogeneous(True)
+
+        box.add(help_box)
+
+        return box
 
     def on_running_game_select(self, widget, row):
         """Handler for hiding and showing the revealers in children"""
