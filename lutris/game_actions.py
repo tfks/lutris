@@ -19,6 +19,7 @@ from lutris.util import xdgshortcuts
 
 class GameActions:
     """Regroup a list of callbacks for a game"""
+
     def __init__(self, application=None, window=None):
         self.application = application or Gio.Application.get_default()
         self.window = window

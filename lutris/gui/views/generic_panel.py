@@ -40,7 +40,6 @@ class GenericPanel(Gtk.Box):
     def __init__(self, application=None):
         super().__init__(visible=True)
         self.application = application
-        #self.set_size_request(320, -1)
         self.get_style_context().add_class("game-panel")
         self.set_background()
         self.place_content()
@@ -98,6 +97,11 @@ class GenericPanel(Gtk.Box):
             listbox.show()
 
             vbox_running_games.pack_start(listbox, False, False, 6)
+        else:
+            label_no_games_running = Gtk.Label(visible=True)
+            label_no_games_running.set_markup("<i>No games plaging</i>")
+
+            vbox_running_games.pack_start(label_no_games_running, False, False, 6)
 
         vbox.pack_start(vbox_running_games, True, True, 6)
 

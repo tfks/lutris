@@ -101,6 +101,10 @@ class GameListView(Gtk.TreeView, GameView):
     def select(self):
         self.set_cursor(self.current_path[0])
 
+    def deselect_all(self):
+        selection = self.get_selection()
+        selection.unselect_all()
+
     def set_selected_game(self, game_id):
         row = self.game_store.get_row_by_id(game_id, filtered=True)
         if row:

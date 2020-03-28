@@ -36,6 +36,9 @@ class GameGridView(Gtk.IconView, GameView):
     def select(self):
         self.select_path(self.current_path)
 
+    def deselect_all(self):
+        self.emit("unselect_all")
+
     def get_selected_item(self):
         """Return the currently selected game's id."""
         selection = self.get_selected_items()

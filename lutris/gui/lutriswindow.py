@@ -810,6 +810,7 @@ class LutrisWindow(Gtk.ApplicationWindow):
 
         if not game:
             self.game_panel = GenericPanel(application=self.application)
+            self.view.deselect_all()
         else:
             self.game_actions.set_game(game=game)
             self.game_panel = GamePanel(self.game_actions)

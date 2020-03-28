@@ -1,10 +1,11 @@
 """Game panel"""
 from datetime import datetime
-from gi.repository import Gtk, Pango, GObject
+from gi.repository import Gtk, GObject
 from lutris import runners
-from lutris.gui.widgets.utils import get_pixbuf_for_game, get_link_button
+from lutris.gui.widgets.utils import get_link_button
 from lutris.util.strings import gtk_safe
 from lutris.gui.views.generic_panel import GenericPanel
+from lutris.gui.views.game_panel_boxes.title_block import GamePanelTitleBlock
 
 
 class GamePanel(GenericPanel):
@@ -27,23 +28,10 @@ class GamePanel(GenericPanel):
     def place_content(self):
         vbox = Gtk.VBox(spacing=0, visible=True)
 
-        """Add all controls to a vertical box"""
-        hbox_top_buttons = Gtk.Box(spacing=6, visible=True)
+        game_panel_title_block = GamePanelTitleBlock(spacing=6, visible=True, game=self.game, parent_widget=self)
+        vbox.pack_start(game_panel_title_block, False, False, 12)
 
-        title_label = Gtk.Label()
-
-        self.set_title_label_styles(title_label)
-
-        hbox_top_buttons.pack_start(self.get_icon(), False, False, 6)
-        hbox_top_buttons.pack_start(title_label, True, True, 0)
-        hbox_top_buttons.pack_start(self.get_close_button(), False, False, 6)
-
-        hbox_top_buttons.set_center_widget(title_label)
-
-        hbox_top_buttons.set_size_request(-1, 25)
-
-        vbox.pack_start(hbox_top_buttons, False, False, 12)
-
+        """Game labels block"""
         vbox_game_labels = Gtk.VBox(spacing=0, visible=True)
 
         if self.game.is_installed:
@@ -52,8 +40,6 @@ class GamePanel(GenericPanel):
             vbox_game_labels.pack_start(self.get_playtime_label(), False, False, 2)
         if self.game.lastplayed:
             vbox_game_labels.pack_start(self.get_last_played_label(), False, False, 2)
-
-        vbox_game_labels.set_size_request(-1, 25)
 
         vbox.pack_start(vbox_game_labels, False, False, 12)
 
@@ -66,8 +52,6 @@ class GamePanel(GenericPanel):
             button.set_size_request(-1, 20)
             vbox_play_control_buttons.pack_start(button, False, False, 6)
 
-        #vbox_play_control_buttons.set_size_request(-1, 25)
-
         vbox.pack_start(vbox_play_control_buttons, False, False, 12)
 
         """Runners"""
@@ -76,18 +60,10 @@ class GamePanel(GenericPanel):
         hbbox_runners.set_layout(Gtk.ButtonBoxStyle.EDGE)
         hbbox_runners.set_spacing(4)
 
-        #hbox_runners = Gtk.Box(spacing=0, visible=True)
-
-        #hbox_runners.set_homogeneous(True)
-
         self.buttons_for_runner = self.get_buttons_for_runner_actions()
 
         for action_id, button in self.buttons_for_runner.items():
-            #button.set_size_request(30, 15)
-            #hbox_runners.pack_start(button, True, True, 4)
             hbbox_runners.add(button)
-
-        #hbox_runners.set_size_request(-1, 20)
 
         vbox.pack_start(hbbox_runners, False, False, 12)
 
@@ -110,20 +86,21 @@ class GamePanel(GenericPanel):
         vbox.set_center_widget(vbox_game_options)
 
         """WINE actions"""
-        vbox_wine = Gtk.VBox(spacing=0, visible=True)
-
-        label_wine = Gtk.Label(visible=True)
-        label_wine.set_markup("<b>{}</b>".format("Wine options"))
-        label_wine.set_size_request(-1, 25)
-
-        vbox_wine.pack_start(label_wine, True, True, 6)
-
         self.buttons_wine_actions = self.get_buttons_for_wine_actions()
 
-        for action_id, button in self.buttons_wine_actions.items():
-            vbox_wine.pack_start(button, False, False, 0)
+        if self.buttons_wine_actions.items():
+            vbox_wine = Gtk.VBox(spacing=0, visible=True)
 
-        vbox.pack_start(vbox_wine, False, False, 12)
+            label_wine = Gtk.Label(visible=True)
+            label_wine.set_markup("<b>{}</b>".format("Wine options"))
+            label_wine.set_size_request(-1, 25)
+
+            vbox_wine.pack_start(label_wine, True, True, 6)
+
+            for action_id, button in self.buttons_wine_actions.items():
+                vbox_wine.pack_start(button, False, False, 0)
+
+            vbox.pack_start(vbox_wine, False, False, 12)
 
         """Other actions"""
         vbox_other = Gtk.VBox(spacing=0, visible=True)
@@ -152,34 +129,6 @@ class GamePanel(GenericPanel):
     @property
     def background_id(self):
         return self.game.slug
-
-    def get_close_button(self):
-        """Return the close button"""
-        button = Gtk.Button.new_from_icon_name(
-            "window-close-symbolic", Gtk.IconSize.MENU
-        )
-        button.set_tooltip_text("Close")
-        button.set_size_request(32, 32)
-        button.connect("clicked", self.on_close)
-        button.show()
-        return button
-
-    def get_icon(self):
-        """Return the game icon"""
-        icon = Gtk.Image.new_from_pixbuf(get_pixbuf_for_game(self.game.slug, "icon"))
-        icon.show()
-        return icon
-
-    def set_title_label_styles(self, title_label):
-        """Style the label with the game's title"""
-        title_label.set_markup(
-            "<span font_desc='16'>%s</span>" % gtk_safe(self.game.name)
-        )
-        title_label.set_ellipsize(Pango.EllipsizeMode.END)
-        #title_label.set_alignment(0, 0.5)
-        #title_label.set_justify(Gtk.Justification.CENTER)
-        title_label.show()
-        return title_label
 
     def get_runner_label(self):
         """Return the label containing the runner info"""
