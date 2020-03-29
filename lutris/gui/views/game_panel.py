@@ -28,7 +28,7 @@ class GamePanel(GenericPanel):
         self.set_margin_right(10)
         self.game.connect("game-start", self.on_game_start)
         self.game.connect("game-started", self.on_game_started)
-        self.game.connect("game-stopped", self.on_game_stop)
+        self.game.connect("game-stopped", self.on_game_state_changed)
 
     def place_content(self):
         vbox = Gtk.VBox(spacing=0, visible=True)
@@ -115,8 +115,8 @@ class GamePanel(GenericPanel):
         self.buttons["play"].set_label("Play")
         self.buttons["play"].set_sensitive(True)
 
-    def on_game_stop(self, _widget, _game_id=None):
-        """Called when a game is stopped (`game-stopped` signal)"""
+    def on_game_state_changed(self, _widget, _game_id=None):
+        """Generic callback to trigger a refresh"""
         self.refresh()
 
     def on_shortcut_edited(self, _widget, action_id):
