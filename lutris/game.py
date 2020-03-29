@@ -44,6 +44,7 @@ class Game(GObject.Object):
         "game-stopped": (GObject.SIGNAL_RUN_FIRST, None, (int,)),
         "game-removed": (GObject.SIGNAL_RUN_FIRST, None, ()),
         "game-updated": (GObject.SIGNAL_RUN_FIRST, None, ()),
+        "game-installed": (GObject.SIGNAL_RUN_FIRST, None, ()),
     }
 
     def __init__(self, game_id=None):
@@ -441,6 +442,9 @@ class Game(GObject.Object):
                 setxkbmap_command, env=os.environ, stdout=xkbcomp.stdin
             ).communicate()
             xkbcomp.communicate()
+
+        if system_config.get("aco"):
+            env["RADV_PERFTEST"] = "aco"
 
         pulse_latency = system_config.get("pulse_latency")
         if pulse_latency:

@@ -1,6 +1,7 @@
 """DXVK helper module"""
 import os
 import json
+import threading
 import time
 import shutil
 import urllib.request
@@ -54,7 +55,20 @@ def init_dxvk_versions():
             manager.DXVK_VERSIONS[1:9],
         )
 
-    init_versions(DXVKManager)
+    # prevent race condition with if statement
+    with DXVKManager.init_lock:
+        # don't start init twice
+        if not DXVKManager.init_started:
+            DXVKManager.init_started = True
+            init_versions(DXVKManager)
+
+
+def wait_for_dxvk_init():
+    # wait for finishing DXVK initialization and prevent race condition with if statement
+    with DXVKManager.init_lock:
+        # in case DXVK init never got started, start it to prevent waiting indefinitely
+        if not DXVKManager.init_started:
+            init_dxvk_versions()
 
 
 class UnavailableDXVKVersion(RuntimeError):
@@ -65,15 +79,16 @@ class DXVKManager:
     """Utility class to install DXVK dlls to a Wine prefix"""
 
     DXVK_TAGS_URL = "https://api.github.com/repos/doitsujin/dxvk/releases"
-    DXVK_VERSIONS = [
-        "1.5",
-    ]
+    DXVK_VERSIONS = ["1.6"]
     DXVK_LATEST, DXVK_PAST_RELEASES = DXVK_VERSIONS[0], DXVK_VERSIONS[1:9]
+
+    init_started = False
+    init_lock = threading.RLock()
 
     base_url = "https://github.com/doitsujin/dxvk/releases/download/v{}/dxvk-{}.tar.gz"
     base_name = "dxvk"
     base_dir = os.path.join(RUNTIME_DIR, base_name)
-    dxvk_dlls = ("dxgi", "d3d11", "d3d10core", "d3d10_1", "d3d10", "d3d9")
+    dxvk_dlls = ("dxgi", "d3d11", "d3d10core", "d3d9")
     latest_version = DXVK_LATEST
 
     def __init__(self, prefix, arch="win64", version=None):
@@ -209,3 +224,8 @@ class DXVKManager:
         """Disable DXVK for the current prefix"""
         for system_dir, dxvk_arch, dll in self._iter_dxvk_dlls():
             self.disable_dxvk_dll(system_dir, dxvk_arch, dll)
+
+
+class VKD3DManager(DXVKManager):
+    """Modified DXVKManager for supporting VKD3D"""
+    dxvk_dlls = ("d3d11", "d3d10core", "d3d9", "dxvk_config")

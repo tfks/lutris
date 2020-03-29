@@ -126,7 +126,9 @@ class wine(Runner):
 
     def __init__(self, config=None):
         super(wine, self).__init__(config)
-        self.dll_overrides = {}
+        self.dll_overrides = {
+            "winemenubuilder.exe": "d"
+        }
 
         def get_wine_version_choices():
             version_choices = [("Custom (select executable below)", "custom")]
@@ -232,6 +234,13 @@ class wine(Runner):
                 "type": "choice_with_entry",
                 "choices": get_dxvk_choices,
                 "default": dxvk.DXVKManager.DXVK_LATEST,
+            },
+            {
+                "option": "vkd3d",
+                "label": "Enable VKD3D",
+                "advanced": True,
+                "type": "bool",
+                "default": False
             },
             {
                 "option": "esync",
@@ -655,6 +664,7 @@ class wine(Runner):
             executable,
             wine_path=self.get_executable(),
             prefix=self.prefix_path,
+            working_dir=self.prefix_path,
             config=self,
             env=self.get_env(os_env=True),
         )
@@ -784,9 +794,13 @@ class wine(Runner):
         self.sandbox(prefix_manager)
         self.set_regedit_keys()
         self.setup_x360ce(self.runner_config.get("x360ce-path"))
+        if self.runner_config.get("vkd3d"):
+            dxvk_manager = dxvk.VKD3DManager
+        else:
+            dxvk_manager = dxvk.DXVKManager
         self.setup_dxvk(
             "dxvk",
-            dxvk_manager=dxvk.DXVKManager(
+            dxvk_manager=dxvk_manager(
                 self.prefix_path,
                 arch=self.wine_arch,
                 version=self.runner_config.get("dxvk_version"),
@@ -805,13 +819,11 @@ class wine(Runner):
             overrides = self.runner_config["overrides"]
         except KeyError:
             overrides = {}
-        else:
-            if not isinstance(overrides, dict):
-                logger.warning("DLL overrides is not a mapping: %s", overrides)
-                overrides = {}
-            else:
-                overrides = overrides.copy()
+        if not isinstance(overrides, dict):
+            logger.warning("DLL overrides is not a mapping: %s", overrides)
+            overrides = {}
 
+        overrides = overrides.copy()
         overrides.update(self.dll_overrides)
         return overrides
 
