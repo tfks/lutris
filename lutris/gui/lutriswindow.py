@@ -107,7 +107,8 @@ class LutrisWindow(Gtk.ApplicationWindow):
         GObject.add_emission_hook(Game, "game-started", self.on_game_started)
         GObject.add_emission_hook(Game, "game-installed", self.on_game_installed)
         GObject.add_emission_hook(
-            GenericPanel, "running-game-selected", self.game_selection_changed
+            GenericPanel, "running-game-selected", self.game_selection_changed,
+            GenericPanel, "show-hidden-games-changed", self
         )
         self.connect("delete-event", self.on_window_delete)
         if self.maximized:
@@ -134,7 +135,8 @@ class LutrisWindow(Gtk.ApplicationWindow):
         self.sidebar_listbox.set_visible(True)
         self.sidebar_scrolled.add(self.sidebar_listbox)
 
-        self.game_panel = GenericPanel(game_store=self.game_store, application=self.application)
+        self.game_panel = GenericPanel(game_store=self.game_store, 
+actions=self.actions, application=self.application)
 
         self.game_scrolled = Gtk.ScrolledWindow(visible=True)
         self.game_scrolled.set_size_request(320, -1)
@@ -816,7 +818,8 @@ class LutrisWindow(Gtk.ApplicationWindow):
             child.destroy()
 
         if not game:
-            self.game_panel = GenericPanel(application=self.application, game_store=self.game_store)
+            self.game_panel = GenericPanel(application=self.application, 
+game_store=self.game_store, actions=self.actions)
             self.view.deselect_all()
         else:
             self.game_actions.set_game(game=game)
