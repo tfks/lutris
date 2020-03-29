@@ -133,7 +133,7 @@ class LutrisWindow(Gtk.ApplicationWindow):
         self.sidebar_listbox.set_visible(True)
         self.sidebar_scrolled.add(self.sidebar_listbox)
 
-        self.game_panel = GenericPanel(application=self.application)
+        self.game_panel = GenericPanel(game_store=self.game_store, application=self.application)
 
         self.game_scrolled = Gtk.ScrolledWindow(visible=True)
         self.game_scrolled.set_size_request(320, -1)
@@ -809,11 +809,11 @@ class LutrisWindow(Gtk.ApplicationWindow):
             child.destroy()
 
         if not game:
-            self.game_panel = GenericPanel(application=self.application)
+            self.game_panel = GenericPanel(application=self.application, game_store=self.game_store)
             self.view.deselect_all()
         else:
             self.game_actions.set_game(game=game)
-            self.game_panel = GamePanel(self.game_actions)
+            self.game_panel = GamePanel(self.game_actions, game_store=self.game_store)
             self.game_panel.connect("panel-closed", self.on_panel_closed)
             self.view.contextual_menu.connect(
                 "shortcut-edited", self.game_panel.on_shortcut_edited
