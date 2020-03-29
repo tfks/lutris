@@ -24,8 +24,9 @@ class GenericPanel(Gtk.Box):
         "running-game-selected": (GObject.SIGNAL_RUN_FIRST, None, (Game, ))
     }
 
-    def __init__(self, application=None):
+    def __init__(self, game_store, application=None):
         super().__init__(visible=True)
+        self.game_store = game_store
         self.application = application
         self.get_style_context().add_class("game-panel")
         self.set_background()
@@ -74,7 +75,7 @@ class GenericPanel(Gtk.Box):
         vbox.pack_start(running_games_block, True, True, 6)
 
         """Lutris specific actions"""
-        lutris_specific_action_block = LutrisSpecificBlock(spacing=6, visible=True, title="Lutris")
+        lutris_specific_action_block = LutrisSpecificBlock(spacing=6, visible=True, title="Lutris", game_store=self.game_store)
         vbox.pack_end(lutris_specific_action_block, False, False, 6)
 
         self.pack_start(vbox, True, True, 6)

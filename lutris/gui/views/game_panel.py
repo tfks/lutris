@@ -19,10 +19,11 @@ class GamePanel(GenericPanel):
         "panel-closed": (GObject.SIGNAL_RUN_FIRST, None, ()),
     }
 
-    def __init__(self, game_actions):
+    def __init__(self, game_actions, game_store):
         self.game_actions = game_actions
+        self.game_store = game_store
         self.game = game_actions.game
-        super().__init__()
+        super().__init__(game_store=self.game_store)
         self.set_margin_left(10)
         self.set_margin_right(10)
         self.game.connect("game-start", self.on_game_start)
