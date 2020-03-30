@@ -1,5 +1,6 @@
-from gi.repository import Gtk, GLib
-from lutris import settings, pga
+from gi.repository import Gtk
+from lutris import settings
+from lutris.util.log import logger
 from lutris.gui.widgets.utils import (
     get_default_button,
     get_main_window
@@ -68,47 +69,22 @@ class LutrisSpecificBlock(Gtk.VBox):
         # cbox.set_active(active)
         # cbox.set_action_name(action)
         cbox.set_sensitive(True)
-        # cbox.connect("toggled", callback)
+        cbox.connect("toggled", callback)
         return cbox
 
     def on_preferences_clicked(self, button):
         SystemConfigDialog(get_main_window(button))
 
     def on_cbox_installed_games_toggle(self, button):
-        parent_widget.emit("show-installed-only", actions["show-installed-only"], button.get_active())
-        # settings.write_setting("filter_installed", bool(button.get_active()))
-        # self.actions["show-installed-only"].set_state(GLib.Variant('b',
-        # button.get_active()))
-        # self.game_store.filter_installed = self.filter_installed
-        # self.invalidate_game_filter()
-        return
-
-    def invalidate_game_filter(self):
-        """Refilter the game view based on current filters"""
-        self.game_store.modelfilter.refilter()
-        self.game_store.modelsort.clear_cache()
-        self.game_store.sort_view(self.view_sorting, self.view_sorting_ascending)
-
-    def show_hidden_games_changed(self, active):
-        self.do_show_hidden_games_change(active)
-
-    def do_show_hidden_games_change(self, active):
-        parent_widget.emit("", self.actions["show-hidden-games"], active)
-        # settings.write_setting("show_hidden_games", bool(active), # section="lutris")
-
-        # self.actions["show-hidden-games"].set_active(GLib.Variant('b', # self.show_hidden_games))
-
-        # ignores = pga.get_hidden_ids()
-
-        # if active:
-        #     self.game_store.add_games_by_ids(ignores)
-        # else:
-        #     for game_id in ignores:
-        #         self.game_store.remove_game(game_id)
+        # action = self.actions["show-installed-only"]
+        # action.set_state(GLib.Variant("b", button.get_active()))
+        logger.info("DEBUG: Lutris specific panel called")
+        self.parent_widget.do_show_installed_games_only_change(button.get_active())
 
     def on_cbox_hidden_games_toggle(self, button):
-        # self.do_show_hidden_games_change(button.get_active())
-        return
+        # action = self.actions["show-hidden-games"]
+        # action.set_state(GLib.Variant("b", button.get_active()))
+        self.parent_widget.do_show_hidden_games_change(button.get_active())
 
     @property
     def filter_installed(self):

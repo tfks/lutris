@@ -8,7 +8,6 @@ from lutris.gui.views import (
     COL_NAME,
     COL_ICON,
 )
-from lutris.util.log import logger
 
 
 class GameGridView(Gtk.IconView, GameView):
@@ -50,7 +49,6 @@ class GameGridView(Gtk.IconView, GameView):
 
     def set_selected_game(self, game_id):
         """Select a game referenced by its ID in the view"""
-        logger.info("DEBUG: Grid::set_selected_game")
         row = self.game_store.get_row_by_id(game_id, filtered=True)
         if row:
             self.select_path(row.path)

@@ -1,5 +1,5 @@
 """Side panel when no game is selected"""
-from gi.repository import Gtk, Gdk, GObject
+from gi.repository import Gtk, Gdk, GObject, GLib
 from lutris.game import Game
 from lutris.gui.widgets.utils import get_pixbuf_for_panel
 from lutris.gui.views.generic_panel_boxes.header_block import HeaderBlock
@@ -23,8 +23,8 @@ class GenericPanel(Gtk.Box):
     __gtype_name__ = "LutrisPanel"
     __gsignals__ = {
         "running-game-selected": (GObject.SIGNAL_RUN_FIRST, None, (Game, )),
-        "show-hidden-games-changed": (GObject.SIGNAL_RUN_FIRST, None, (bool, )),
-        "show-installed-only-changed": (GObject.SIGNAL_RUN_FIRST, None, (bool, ))
+        "show-installed-only-changed": (GObject.SIGNAL_RUN_FIRST, None, (bool, )),
+        "show-hidden-games-changed": (GObject.SIGNAL_RUN_FIRST, None, (bool, ))
     }
 
     def __init__(self, game_store, actions, application=None):
@@ -105,3 +105,10 @@ class GenericPanel(Gtk.Box):
     def running_game_selected(self, widget, game):
         """Handler for hiding and showing the revealers in children"""
         self.emit("running-game-selected", game)
+
+    def do_show_installed_games_only_change(self, value):
+        self.emit("show-installed-only-changed", GLib.Variant.new_boolean(value))
+
+    def do_show_hidden_games_change(self, value):
+        self.emit("show-hidden-games-changed", GLib.Variant.new_boolean(value))
+
