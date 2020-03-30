@@ -14,6 +14,7 @@ class GameView:
         "game-selected": (GObject.SIGNAL_RUN_FIRST, None, (Game, )),
         "game-activated": (GObject.SIGNAL_RUN_FIRST, None, (Game, )),
         "remove-game": (GObject.SIGNAL_RUN_FIRST, None, ()),
+        "running-game-selected": (GObject.SIGNAL_RUN_FIRST, None, (Game, ))
     }
     selected_game = None
     current_path = None

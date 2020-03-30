@@ -8,6 +8,7 @@ from lutris.gui.views import (
     COL_NAME,
     COL_ICON,
 )
+from lutris.util.log import logger
 
 
 class GameGridView(Gtk.IconView, GameView):
@@ -49,6 +50,7 @@ class GameGridView(Gtk.IconView, GameView):
 
     def set_selected_game(self, game_id):
         """Select a game referenced by its ID in the view"""
+        logger.info("DEBUG: Grid::set_selected_game")
         row = self.game_store.get_row_by_id(game_id, filtered=True)
         if row:
             self.select_path(row.path)
@@ -62,14 +64,17 @@ class GameGridView(Gtk.IconView, GameView):
             self.selected_game = None
         self.emit("game-activated", self.selected_game)
 
-    def on_selection_changed(self, _view):
+    def do_selection_change(self):
         """Handles selection changes"""
+        self.emit("game-selected", self.selected_game)
+
+    def on_selection_changed(self, _view):
         selected_item = self.get_selected_item()
         if selected_item:
             self.selected_game = self.get_selected_game(selected_item)
         else:
             self.selected_game = None
-        self.emit("game-selected", self.selected_game)
+        self.do_selection_change()
 
     def on_icons_changed(self, store, icon_type):
         width = BANNER_SIZE[0] if icon_type == "banner" else BANNER_SMALL_SIZE[0]

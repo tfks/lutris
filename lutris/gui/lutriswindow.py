@@ -49,6 +49,7 @@ class LutrisWindow(Gtk.ApplicationWindow):
     __gtype_name__ = "LutrisWindow"
 
     main_box = GtkTemplate.Child()
+    view_menu_widget = GtkTemplate.Child()
     games_scrollwindow = GtkTemplate.Child()
     sidebar_revealer = GtkTemplate.Child()
     sidebar_scrolled = GtkTemplate.Child()
@@ -107,8 +108,13 @@ class LutrisWindow(Gtk.ApplicationWindow):
         GObject.add_emission_hook(Game, "game-started", self.on_game_started)
         GObject.add_emission_hook(Game, "game-installed", self.on_game_installed)
         GObject.add_emission_hook(
-            GenericPanel, "running-game-selected", self.game_selection_changed,
-            GenericPanel, "show-hidden-games-changed", self
+            GenericPanel, "running-game-selected", self.game_selection_changed
+        )
+        GObject.add_emission_hook(
+            GenericPanel, "show-hidden-games-changed", self.hidden_state_change
+        )
+        GObject.add_emission_hook(
+            GenericPanel, "show-installed-only-changed", self.on_show_installed_state_change
         )
         self.connect("delete-event", self.on_window_delete)
         if self.maximized:
@@ -818,17 +824,36 @@ actions=self.actions, application=self.application)
             child.destroy()
 
         if not game:
-            self.game_panel = GenericPanel(application=self.application, 
-game_store=self.game_store, actions=self.actions)
+            self.game_panel = GenericPanel(
+                application=self.application,
+                game_store=self.game_store,
+                actions=self.actions
+            )
             self.view.deselect_all()
+
+            self.game_panel.connect("running-game-selected", self.game_selection_changed)
+            self.game_panel.connect("show-installed-only-changed", self.hidden_state_change)
+            self.game_panel.connect("show-hidden-games-changed", self.on_show_installed_state_change)
+
         else:
+            logger.info("DEBUG: LutrisWindow::game_selection_changed")
             self.game_actions.set_game(game=game)
-            self.game_panel = GamePanel(self.game_actions, game_store=self.game_store)
+
+            self.game_panel = GamePanel(
+                game_actions=self.game_actions,
+                actions=self.actions,
+                game_store=self.game_store
+            )
+            # if self.game_actions.game.id != game.id:
+            self.view.set_selected_game(game.id)
+
             self.game_panel.connect("panel-closed", self.on_panel_closed)
             self.view.contextual_menu.connect(
                 "shortcut-edited", self.game_panel.on_shortcut_edited
             )
+
         self.game_scrolled.add(self.game_panel)
+
         return True
 
     def on_panel_closed(self, panel):

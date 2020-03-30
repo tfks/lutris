@@ -19,16 +19,14 @@ class GamePanel(GenericPanel):
         "panel-closed": (GObject.SIGNAL_RUN_FIRST, None, ()),
     }
 
-    def __init__(self, game_actions, game_store):
+    def __init__(self, game_actions, actions, game_store):
         self.game_actions = game_actions
+        self.actions = actions
         self.game_store = game_store
         self.game = game_actions.game
-        super().__init__(game_store=self.game_store)
+        super().__init__(game_store=self.game_store, actions=self.actions)
         self.set_margin_left(10)
         self.set_margin_right(10)
-        self.game.connect("game-start", self.on_game_start)
-        self.game.connect("game-started", self.on_game_started)
-        self.game.connect("game-stopped", self.on_game_state_changed)
 
     def place_content(self):
         vbox = Gtk.VBox(spacing=0, visible=True)
@@ -42,7 +40,7 @@ class GamePanel(GenericPanel):
         vbox.pack_start(game_labels_block, False, False, 12)
 
         """Play controls block"""
-        play_controls_block = PlayControlsBlock(spacing=0, visible=True, game_actions=self.game_actions)
+        play_controls_block = PlayControlsBlock(spacing=0, visible=True, game=self.game, game_actions=self.game_actions)
 
         vbox.pack_start(play_controls_block, False, False, 12)
 
@@ -102,22 +100,6 @@ class GamePanel(GenericPanel):
                 button.connect("clicked", callback)
                 buttons[name] = button
         return buttons
-
-    def on_game_start(self, _widget):
-        """Callback for the `game-start` signal"""
-        self.buttons["play"].set_label("Launching...")
-        self.buttons["play"].set_sensitive(False)
-
-    def on_game_started(self, _widget):
-        """Callback for the `game-started` signal"""
-        self.buttons["stop"].show()
-        self.buttons["play"].hide()
-        self.buttons["play"].set_label("Play")
-        self.buttons["play"].set_sensitive(True)
-
-    def on_game_state_changed(self, _widget, _game_id=None):
-        """Generic callback to trigger a refresh"""
-        self.refresh()
 
     def on_shortcut_edited(self, _widget, action_id):
         """Callback for shortcut buttons"""

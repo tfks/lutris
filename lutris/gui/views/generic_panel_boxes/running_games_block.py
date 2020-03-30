@@ -1,15 +1,17 @@
 from gi.repository import Gtk, Pango, Gio
+from lutris.gui.widgets.utils import get_pixbuf_for_game
 from lutris.util.strings import gtk_safe
 
 
 class RunningGamesBlock(Gtk.VBox):
     """Panel containing the running games for the generic panel"""
 
-    def __init__(self, spacing, visible, title):
+    def __init__(self, spacing, visible, title, parent_widget):
         super().__init__()
         self.set_spacing(spacing)
         self.set_visible(visible)
         self.title = title
+        self.parent_widget = parent_widget
         self.place_content()
 
     def place_content(self):
@@ -22,7 +24,7 @@ class RunningGamesBlock(Gtk.VBox):
 
         if application.running_games.get_n_items():
             listbox = Gtk.ListBox(visible=True)
-            listbox.bind_model(self.application.running_games, self.create_list_widget)
+            listbox.bind_model(application.running_games, self.create_list_widget)
             listbox.connect('row-selected', self.on_running_game_select)
             listbox.show()
 
@@ -37,7 +39,7 @@ class RunningGamesBlock(Gtk.VBox):
         box = Gtk.Box(
             spacing=6, margin_top=6, margin_bottom=6, margin_right=6, margin_left=6
         )
-        box.set_size_request(100, 32)
+        # box.set_size_request(100, 32)
 
         icon = Gtk.Image.new_from_pixbuf(get_pixbuf_for_game(game.slug, "icon"))
         icon.show()
@@ -51,9 +53,9 @@ class RunningGamesBlock(Gtk.VBox):
         return box
 
     def on_running_game_select(self, widget, row):
-        """Handler for hiding and showing the revealers in children"""
         if not row:
             game = None
         else:
             game = row.get_children()[0].game
-        self.emit("running-game-selected", game)
+
+        self.parent_widget.running_game_selected(widget, game)

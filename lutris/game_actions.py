@@ -161,6 +161,13 @@ class GameActions:
         """Returns whether a game is on the list of hidden games"""
         return game.id in pga.get_hidden_ids()
 
+    def get_displayed_entries(self):
+        displayed_entries = {}
+        displayed_entries.update(self.get_displayed_entries_play_controls())
+        displayed_entries.update(self.get_displayed_entries_runner_actions())
+        displayed_entries.update(self.get_displayed_entries_game())
+        return displayed_entries
+
     def get_displayed_entries_play_controls(self):
         return {
             "install": not self.game.is_installed,

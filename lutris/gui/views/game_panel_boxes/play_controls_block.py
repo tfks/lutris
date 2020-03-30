@@ -4,17 +4,21 @@ from gi.repository import Gtk
 class PlayControlsBlock(Gtk.VBox):
     """Panel containing the play controls for the game panel"""
 
-    def __init__(self, spacing, visible, game_actions):
+    def __init__(self, spacing, visible, game, game_actions):
         super().__init__()
         self.set_spacing(spacing)
         self.set_visible(visible)
+        self.game = game
         self.game_actions = game_actions
-        self.set_content()
+        self.game.connect("game-start", self.on_game_start)
+        self.game.connect("game-started", self.on_game_started)
+        self.game.connect("game-stopped", self.on_game_state_changed)
+        self.place_content()
 
-    def set_content(self):
-        self.play_control_buttons = self.get_buttons_play_control_actions()
+    def place_content(self):
+        self.buttons = self.get_buttons_play_control_actions()
 
-        for action_id, button in self.play_control_buttons.items():
+        for action_id, button in self.buttons.items():
             button.set_size_request(-1, 20)
             self.pack_start(button, False, False, 6)
 
@@ -51,3 +55,19 @@ class PlayControlsBlock(Gtk.VBox):
             button.connect("clicked", callback)
             buttons[action_id] = button
         return buttons
+
+    def on_game_start(self, _widget):
+        """Callback for the `game-start` signal"""
+        self.buttons["play"].set_label("Launching...")
+        self.buttons["play"].set_sensitive(False)
+
+    def on_game_started(self, _widget):
+        """Callback for the `game-started` signal"""
+        self.buttons["stop"].show()
+        self.buttons["play"].hide()
+        self.buttons["play"].set_label("Play")
+        self.buttons["play"].set_sensitive(True)
+
+    def on_game_state_changed(self, _widget, _game_id=None):
+        """Generic callback to trigger a refresh"""
+        self.refresh()

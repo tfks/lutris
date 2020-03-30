@@ -6,6 +6,7 @@ from lutris.gui.views.generic_panel_boxes.header_block import HeaderBlock
 from lutris.gui.views.generic_panel_boxes.links_block import LinksBlock
 from lutris.gui.views.generic_panel_boxes.running_games_block import RunningGamesBlock
 from lutris.gui.views.generic_panel_boxes.lutris_specific_action_block import LutrisSpecificBlock
+from lutris.util.log import logger
 
 LINKS = {
     "floss": "https://lutris.net/games/?q=&fully-libre-filter=on&sort-by-popularity=on",
@@ -21,7 +22,9 @@ class GenericPanel(Gtk.Box):
 
     __gtype_name__ = "LutrisPanel"
     __gsignals__ = {
-        "running-game-selected": (GObject.SIGNAL_RUN_FIRST, None, (Game, ))
+        "running-game-selected": (GObject.SIGNAL_RUN_FIRST, None, (Game, )),
+        "show-hidden-games-changed": (GObject.SIGNAL_RUN_FIRST, None, (bool, )),
+        "show-installed-only-changed": (GObject.SIGNAL_RUN_FIRST, None, (bool, ))
     }
 
     def __init__(self, game_store, actions, application=None):
@@ -71,13 +74,24 @@ class GenericPanel(Gtk.Box):
         vbox.pack_start(links_block, False, False, 6)
 
         """Running games"""
-        running_games_block = RunningGamesBlock(spacing=0, visible=True, title="Playing")
+        running_games_block = RunningGamesBlock(
+            spacing=0,
+            visible=True,
+            title="Playing",
+            parent_widget=self
+        )
 
         vbox.pack_start(running_games_block, True, True, 6)
 
         """Lutris specific actions"""
-        lutris_specific_action_block = LutrisSpecificBlock(spacing=6, 
-visible=True, title="Lutris", game_store=self.game_store, actions=self.actions)
+        lutris_specific_action_block = LutrisSpecificBlock(
+            spacing=6,
+            visible=True,
+            title="Lutris",
+            game_store=self.game_store,
+            actions=self.actions,
+            parent_widget=self
+        )
         vbox.pack_end(lutris_specific_action_block, False, False, 6)
 
         self.pack_start(vbox, True, True, 6)
@@ -87,3 +101,8 @@ visible=True, title="Lutris", game_store=self.game_store, actions=self.actions)
         for child in self.get_children():
             child.destroy()
         self.place_content()
+
+    def running_game_selected(self, widget, game):
+        """Handler for hiding and showing the revealers in children"""
+        logger.info("DEBUG: GenericPanel::running_game_selected")
+        self.emit("running-game-selected", game)
