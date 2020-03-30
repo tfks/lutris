@@ -104,5 +104,4 @@ class GenericPanel(Gtk.Box):
 
     def running_game_selected(self, widget, game):
         """Handler for hiding and showing the revealers in children"""
-        logger.info("DEBUG: GenericPanel::running_game_selected")
         self.emit("running-game-selected", game)
