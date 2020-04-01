@@ -140,12 +140,15 @@ class GameActions:
         game = Game(self.window.view.selected_game.id)
 
         # Append the new hidden ID and save it
-        ignores = pga.get_hidden_ids() + [game.id]
-        pga.set_hidden_ids(ignores)
+        ignores = pga.get_hidden_ids()
+        if game.id not in ignores:
+            ignores.append([game.id])
 
-        # Update the GUI
-        if not self.window.show_hidden_games:
-            self.window.game_store.remove_game(game.id)
+            pga.set_hidden_ids(ignores)
+
+            # Update the GUI
+            if not self.window.show_hidden_games:
+                self.window.game_store.remove_game(game.id)
 
     def on_unhide_game(self, _widget):
         """Removes a game from the list of hidden games"""

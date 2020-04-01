@@ -32,6 +32,9 @@ class GenericPanel(Gtk.Box):
         self.game_store = game_store
         self.actions = actions
         self.application = application
+
+        self.lutris_specific_action_block = None
+
         self.get_style_context().add_class("game-panel")
         self.set_background()
         self.place_content()
@@ -84,7 +87,7 @@ class GenericPanel(Gtk.Box):
         vbox.pack_start(running_games_block, True, True, 6)
 
         """Lutris specific actions"""
-        lutris_specific_action_block = LutrisSpecificBlock(
+        self.lutris_specific_action_block = LutrisSpecificBlock(
             spacing=6,
             visible=True,
             title="Lutris",
@@ -92,7 +95,7 @@ class GenericPanel(Gtk.Box):
             actions=self.actions,
             parent_widget=self
         )
-        vbox.pack_end(lutris_specific_action_block, False, False, 6)
+        vbox.pack_end(self.lutris_specific_action_block, False, False, 6)
 
         self.pack_start(vbox, True, True, 6)
 
@@ -105,6 +108,9 @@ class GenericPanel(Gtk.Box):
     def running_game_selected(self, widget, game):
         """Handler for hiding and showing the revealers in children"""
         self.emit("running-game-selected", game)
+
+    def set_show_installed_games_only_controls_active(self, value):
+        self.lutris_specific_action_block.set_show_installed_games_only_controls_active(value)
 
     def do_show_installed_games_only_change(self, value):
         self.emit("show-installed-only-changed", GLib.Variant.new_boolean(value))

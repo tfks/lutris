@@ -54,8 +54,6 @@ class GamePanel(GenericPanel):
 
         vbox.pack_start(game_options_block, False, False, 12)
 
-        # vbox.set_center_widget(game_options_block)
-
         """WINE actions"""
         self.buttons_wine_actions = self.get_buttons_for_wine_actions()
 

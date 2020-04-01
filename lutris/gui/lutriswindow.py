@@ -277,37 +277,9 @@ actions=self.actions, application=self.application)
             if value.accel:
                 app.add_accelerator(value.accel, "win." + name)
 
-    def on_hide_game(self, _widget):
-        """Add a game to the list of hidden games"""
-        game = Game(self.view.selected_game)
-
-        # Append the new hidden ID and save it
-        ignores = pga.get_hidden_ids()
-
-        if not game.id in ignores:
-            ignores.append([game.id])
-        pga.set_hidden_ids(ignores)
-
-        # Update the GUI
-        # if not self.show_hidden_games:
-        self.view.remove_game(game.id)
-
-    def on_unhide_game(self, _widget):
-        """Removes a game from the list of hidden games"""
-        game = Game(self.view.selected_game)
-
-        # Remove the ID to unhide and save it
-        ignores = pga.get_hidden_ids()
-        if game.id in ignores:
-            ignores.remove(game.id)
-        pga.set_hidden_ids(ignores)
-
     def do_hidden_state_change(self, value):
-        # Add or remove hidden games
         ignores = pga.get_hidden_ids()
-        settings.write_setting("show_hidden_games",
-                               str(self.show_hidden_games).lower(),
-                               section="lutris")
+
         # If we have to show the hidden games now, we need to add them back to
         # the view. If we need to hide them, we just remove them from the view
         if value:
@@ -316,8 +288,15 @@ actions=self.actions, application=self.application)
             for game_id in ignores:
                 self.game_store.remove_game(game_id)
 
+        # Add or remove hidden games
+        ignores = pga.get_hidden_ids()
+        settings.write_setting("show_hidden_games",
+                               str(self.show_hidden_games).lower(),
+                               section="lutris")
+
     def hidden_state_change_from_generic_panel(self, action, value):
         self.actions["show-hidden-games"].set_state(GLib.Variant.new_boolean(value))
+        # action.set_state(value)
         self.do_hidden_state_change(value)
         self.make_generic_panel_event_connections()
 
@@ -729,6 +708,8 @@ actions=self.actions, application=self.application)
         """Callback to handle uninstalled game filter switch"""
         action.set_state(value)
         self.set_show_installed_state(value.get_boolean())
+        if self.game_panel is not None and type(self.game_panel) is GenericPanel:
+            self.game_panel.set_show_installed_games_only_controls_active(value.get_boolean())
 
     def set_show_installed_state(self, installed_filter):
         """Shows or hide uninstalled games"""
@@ -841,7 +822,6 @@ actions=self.actions, application=self.application)
 
     def game_selection_changed(self, _widget, game):
         """Callback to handle the selection of a game in the view"""
-        logger.info("DEBUG: GAME SELECTION CHANGE CALLED")
         child = self.game_scrolled.get_child()
         if child:
             self.game_scrolled.remove(child)
@@ -854,7 +834,6 @@ actions=self.actions, application=self.application)
                 actions=self.actions
             )
             self.view.deselect_all()
-            logger.info("DEBUG: RECONNECTING EVENTS")
 
             self.make_generic_panel_event_connections()
 

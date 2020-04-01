@@ -5,6 +5,7 @@ import math
 import time
 from itertools import chain
 
+from lutris.util.common import CommonUtils
 from lutris.util.strings import slugify
 from lutris.util.log import logger
 from lutris.util import sql, system
@@ -432,7 +433,9 @@ def get_hidden_ids():
 
 def set_hidden_ids(games):
     """Writes a list of game IDs that are to be hidden into the config file"""
-    ignores_str = [str(game_id) for game_id in games]
+    gameids = [str(game_id) for game_id in games]
+    gameids = CommonUtils.remove_duplicates_from_list(gameids)
+    ignores_str = [str(game_id) for game_id in gameids]
     settings.write_setting("library_ignores",
                            ','.join(ignores_str),
                            section="lutris")
