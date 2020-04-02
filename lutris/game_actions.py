@@ -142,7 +142,7 @@ class GameActions:
         # Append the new hidden ID and save it
         ignores = pga.get_hidden_ids()
         if game.id not in ignores:
-            ignores.append([game.id])
+            ignores.append(game.id)
 
             pga.set_hidden_ids(ignores)
 

@@ -109,15 +109,9 @@ class LutrisWindow(Gtk.ApplicationWindow):
         GObject.add_emission_hook(Game, "game-removed", self.on_game_updated)
         GObject.add_emission_hook(Game, "game-started", self.on_game_started)
         GObject.add_emission_hook(Game, "game-installed", self.on_game_installed)
-        GObject.add_emission_hook(
-            GenericPanel, "running-game-selected", self.game_selection_changed
-        )
-        GObject.add_emission_hook(
-            GenericPanel, "show-installed-only-changed", self.on_show_installed_state_changed_from_generic_panel
-        )
-        GObject.add_emission_hook(
-            GenericPanel, "show-hidden-games-changed", self.hidden_state_change_from_generic_panel
-        )
+        GObject.add_emission_hook(GenericPanel, "running-game-selected-from-generic-panel", self.game_selection_changed)
+        GObject.add_emission_hook(GenericPanel, "show-installed-only-changed-from-generic-panel", self.on_show_installed_state_changed_from_generic_panel)
+        GObject.add_emission_hook(GenericPanel, "show-hidden-games-changed-from-generic-panel", self.hidden_state_change_from_generic_panel)
         self.connect("delete-event", self.on_window_delete)
         if self.maximized:
             self.maximize()
@@ -279,7 +273,6 @@ actions=self.actions, application=self.application)
 
     def do_hidden_state_change(self, value):
         ignores = pga.get_hidden_ids()
-
         # If we have to show the hidden games now, we need to add them back to
         # the view. If we need to hide them, we just remove them from the view
         if value:
@@ -288,22 +281,23 @@ actions=self.actions, application=self.application)
             for game_id in ignores:
                 self.game_store.remove_game(game_id)
 
-        # Add or remove hidden games
-        ignores = pga.get_hidden_ids()
-        settings.write_setting("show_hidden_games",
-                               str(self.show_hidden_games).lower(),
-                               section="lutris")
-
     def hidden_state_change_from_generic_panel(self, action, value):
-        self.actions["show-hidden-games"].set_state(GLib.Variant.new_boolean(value))
-        # action.set_state(value)
-        self.do_hidden_state_change(value)
+        if value != self.actions["show-hidden-games"].get_state().get_boolean():
+            self.actions["show-hidden-games"].set_state(GLib.Variant.new_boolean(value))
+            # action.set_state(value)
+
+            self.do_hidden_state_change(value)
+
         self.make_generic_panel_event_connections()
 
     def hidden_state_change(self, action, value):
         """Hides or shows the hidden games"""
-        action.set_state(value)
-        self.do_hidden_state_change(value)
+        if value != action.get_state().get_boolean():
+            action.set_state(value)
+            self.do_hidden_state_change(value)
+
+            if self.game_panel is not None and type(self.game_panel) is GenericPanel:
+                self.game_panel.set_show_hidden_games_controls_active(value)
 
     @property
     def current_view_type(self):
@@ -699,17 +693,19 @@ actions=self.actions, application=self.application)
         self.game_store.modelfilter.refilter()
 
     def on_show_installed_state_changed_from_generic_panel(self, action, value):
-        self.actions["show-installed-only"].set_state(GLib.Variant.new_boolean(value))
-        self.set_show_installed_state(value)
+        if self.actions["show-installed-only"].get_state().get_boolean() != value:
+            self.actions["show-installed-only"].set_state(GLib.Variant.new_boolean(value))
+            self.set_show_installed_state(value)
 
         self.make_generic_panel_event_connections()
 
     def on_show_installed_state_changed(self, action, value):
         """Callback to handle uninstalled game filter switch"""
-        action.set_state(value)
-        self.set_show_installed_state(value.get_boolean())
-        if self.game_panel is not None and type(self.game_panel) is GenericPanel:
-            self.game_panel.set_show_installed_games_only_controls_active(value.get_boolean())
+        if action.get_state().get_boolean() != value.get_boolean():
+            action.set_state(value)
+            self.set_show_installed_state(value.get_boolean())
+            if self.game_panel is not None and type(self.game_panel) is GenericPanel:
+                self.game_panel.set_show_installed_games_only_controls_active(value.get_boolean())
 
     def set_show_installed_state(self, installed_filter):
         """Shows or hide uninstalled games"""
@@ -816,9 +812,9 @@ actions=self.actions, application=self.application)
         self.invalidate_game_filter()
 
     def make_generic_panel_event_connections(self):
-        self.game_panel.connect("running-game-selected", self.game_selection_changed)
-        self.game_panel.connect("show-installed-only-changed", self.on_show_installed_state_changed_from_generic_panel)
-        self.game_panel.connect("show-hidden-games-changed", self.hidden_state_change_from_generic_panel)
+        self.game_panel.connect("running-game-selected-from-generic-panel", self.game_selection_changed)
+        self.game_panel.connect("show-installed-only-changed-from-generic-panel", self.on_show_installed_state_changed_from_generic_panel)
+        self.game_panel.connect("show-hidden-games-changed-from-generic-panel", self.hidden_state_change_from_generic_panel)
 
     def game_selection_changed(self, _widget, game):
         """Callback to handle the selection of a game in the view"""
@@ -838,7 +834,6 @@ actions=self.actions, application=self.application)
             self.make_generic_panel_event_connections()
 
         else:
-            logger.info("DEBUG: LutrisWindow::game_selection_changed")
             self.game_actions.set_game(game=game)
 
             self.game_panel = GamePanel(
@@ -846,7 +841,7 @@ actions=self.actions, application=self.application)
                 actions=self.actions,
                 game_store=self.game_store
             )
-            # if self.game_actions.game.id != game.id:
+
             self.view.set_selected_game(game.id)
 
             self.game_panel.connect("panel-closed", self.on_panel_closed)

@@ -433,6 +433,7 @@ def get_hidden_ids():
 
 def set_hidden_ids(games):
     """Writes a list of game IDs that are to be hidden into the config file"""
+    logger.info("GAMES HIDDEN: %s" % games)
     gameids = [str(game_id) for game_id in games]
     gameids = CommonUtils.remove_duplicates_from_list(gameids)
     ignores_str = [str(game_id) for game_id in gameids]

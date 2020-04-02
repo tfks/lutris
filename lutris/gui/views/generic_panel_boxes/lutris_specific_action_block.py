@@ -21,7 +21,7 @@ class LutrisSpecificBlock(Gtk.VBox):
         self.actions = actions
         self.parent_widget = parent_widget
 
-        self.cbox_installed_games = None
+        self.cbox_installed_games_toggle = None
         self.cbox_hidden_games_toggle = None
 
         self.place_content()
@@ -32,7 +32,7 @@ class LutrisSpecificBlock(Gtk.VBox):
         self.pack_start(title_label, False, False, 6)
 
         """Show installed games checkbox"""
-        self.cbox_installed_games = self.create_checkbox(
+        self.cbox_installed_games_toggle = self.create_checkbox(
             visible=True,
             label="Installed Games Only",
             active=True,
@@ -40,9 +40,9 @@ class LutrisSpecificBlock(Gtk.VBox):
             callback=self.on_cbox_installed_games_toggle
         )
 
-        self.cbox_installed_games.set_active(self.get_show_installed_games_onle_active_state())
+        self.cbox_installed_games_toggle.set_active(self.get_show_installed_games_onle_active_state())
 
-        self.pack_start(self.cbox_installed_games, False, False, 6)
+        self.pack_start(self.cbox_installed_games_toggle, False, False, 6)
 
         """Show hidden games checkbox"""
         self.cbox_hidden_games_toggle = self.create_checkbox(
@@ -81,23 +81,26 @@ class LutrisSpecificBlock(Gtk.VBox):
         return cbox
 
     def get_show_installed_games_onle_active_state(self):
-        return self.actions["show-installed-only"].get_state() == True
+        return self.actions["show-installed-only"].get_state() is True
 
     def set_show_installed_games_only_controls_active(self, value):
-        self.cbox_installed_games.set_active(value)
+        self.cbox_installed_games_toggle.set_active(value)
+
+    def set_show_hidden_games_controls_active(self, value):
+        self.cbox_hidden_games_toggle.set_active(value)
 
     def on_preferences_clicked(self, button):
         SystemConfigDialog(get_main_window(button))
 
-    def on_cbox_installed_games_toggle(self, button):
+    def on_cbox_installed_games_toggle(self, widget):
         # action = self.actions["show-installed-only"]
         # action.set_state(GLib.Variant("b", button.get_active()))
-        self.parent_widget.do_show_installed_games_only_change(button.get_active())
+        self.parent_widget.do_show_installed_games_only_change(self.cbox_installed_games_toggle.get_active())
 
-    def on_cbox_hidden_games_toggle(self, button):
+    def on_cbox_hidden_games_toggle(self, widget):
         # action = self.actions["show-hidden-games"]
         # action.set_state(GLib.Variant("b", button.get_active()))
-        self.parent_widget.do_show_hidden_games_change(button.get_active())
+        self.parent_widget.do_show_hidden_games_change(self.cbox_hidden_games_toggle.get_active())
 
     @property
     def filter_installed(self):

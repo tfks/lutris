@@ -22,9 +22,9 @@ class GenericPanel(Gtk.Box):
 
     __gtype_name__ = "LutrisPanel"
     __gsignals__ = {
-        "running-game-selected": (GObject.SIGNAL_RUN_FIRST, None, (Game, )),
-        "show-installed-only-changed": (GObject.SIGNAL_RUN_FIRST, None, (bool, )),
-        "show-hidden-games-changed": (GObject.SIGNAL_RUN_FIRST, None, (bool, ))
+        "running-game-selected-from-generic-panel": (GObject.SIGNAL_RUN_FIRST, None, (Game, )),
+        "show-installed-only-changed-from-generic-panel": (GObject.SIGNAL_RUN_FIRST, None, (bool, )),
+        "show-hidden-games-changed-from-generic-panel": (GObject.SIGNAL_RUN_FIRST, None, (bool, ))
     }
 
     def __init__(self, game_store, actions, application=None):
@@ -107,14 +107,17 @@ class GenericPanel(Gtk.Box):
 
     def running_game_selected(self, widget, game):
         """Handler for hiding and showing the revealers in children"""
-        self.emit("running-game-selected", game)
+        self.emit("running-game-selected-from-generic-panel", game)
 
     def set_show_installed_games_only_controls_active(self, value):
         self.lutris_specific_action_block.set_show_installed_games_only_controls_active(value)
 
     def do_show_installed_games_only_change(self, value):
-        self.emit("show-installed-only-changed", GLib.Variant.new_boolean(value))
+        self.emit("show-installed-only-changed-from-generic-panel", GLib.Variant.new_boolean(value))
+
+    def set_show_hidden_games_controls_active(self, value):
+        self.lutris_specific_action_block.set_show_hidden_games_controls_active(value)
 
     def do_show_hidden_games_change(self, value):
-        self.emit("show-hidden-games-changed", GLib.Variant.new_boolean(value))
+        self.emit("show-hidden-games-changed-from-generic-panel", GLib.Variant.new_boolean(value))
 
