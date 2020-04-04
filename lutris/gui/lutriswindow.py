@@ -50,8 +50,6 @@ class LutrisWindow(Gtk.ApplicationWindow):
 
     main_box = GtkTemplate.Child()
     view_menu_widget = GtkTemplate.Child()
-    menu_item_show_installed_only = GtkTemplate.Child()
-    menu_item_show_hidden_games = GtkTemplate.Child()
     games_scrollwindow = GtkTemplate.Child()
     sidebar_revealer = GtkTemplate.Child()
     sidebar_scrolled = GtkTemplate.Child()
