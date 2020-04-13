@@ -66,9 +66,6 @@ class PgaGame:
                 _platform = game_inst.platform
             else:
                 logger.debug("Game %s has no platform", self)
-                # Save the game, which will call `set_platform_from_runner`
-                game_inst.save()
-                _platform = game_inst.platform
         return _platform
 
     @property
@@ -115,14 +112,14 @@ class PgaGame:
     @property
     def playtime(self):
         """Playtime duration in hours"""
-        return self._pga_data["playtime"]
+        return self._pga_data["playtime"] or 0.0
 
     @property
     def playtime_text(self):
         """Playtime duration in hours (textual representation)"""
         try:
-            playtime_text = get_formatted_playtime(self._pga_data["playtime"])
+            _playtime_text = get_formatted_playtime(self._pga_data["playtime"])
         except ValueError:
             logger.warning("Invalid playtime value %s for %s", self.playtime, self)
-            playtime_text = ""  # Do not show erroneous values
-        return playtime_text
+            _playtime_text = ""  # Do not show erroneous values
+        return _playtime_text

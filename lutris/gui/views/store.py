@@ -81,8 +81,11 @@ class GameStore(GObject.Object):
         "runner": COL_RUNNER_HUMAN_NAME,
         "platform": COL_PLATFORM,
         "lastplayed": COL_LASTPLAYED,
+        "lastplayed_text": COL_LASTPLAYED_TEXT,
         "installed_at": COL_INSTALLED_AT,
+        "installed_at_text": COL_INSTALLED_AT_TEXT,
         "playtime": COL_PLAYTIME,
+        "playtime_text": COL_PLAYTIME_TEXT,
     }
 
     def __init__(
@@ -126,7 +129,7 @@ class GameStore(GObject.Object):
             bool,
             int,
             str,
-            str,
+            float,
             str,
         )
         sort_col = COL_NAME
@@ -142,7 +145,7 @@ class GameStore(GObject.Object):
             self.modelsort = Gtk.TreeModelSort.sort_new_with_model(self.modelfilter)
         except AttributeError:
             # Apparently some API breaking changes on GTK minor versions.
-            self.modelsort = Gtk.TreeModelSort.new_with_model(self.modelfilter)
+            self.modelsort = Gtk.TreeModelSort.new_with_model(self.modelfilter)  # pylint: disable=no-member  # NOQA
         self.modelsort.connect("sort-column-changed", self.on_sort_column_changed)
         self.modelsort.set_sort_func(sort_col, sort_func, sort_col)
         self.sort_view(sort_key, sort_ascending)
@@ -415,6 +418,7 @@ class GameStore(GObject.Object):
         return self.add_games_by_ids([game_id])
 
     def add_game(self, pga_game):
+        """Add a PGA game to the store"""
         game = PgaGame(pga_game)
         self.games.append(pga_game)
         self.store.append(
@@ -446,12 +450,14 @@ class GameStore(GObject.Object):
             self.add_game_by_id(game_id)
 
     def set_icon_type(self, icon_type):
-        if icon_type != self.icon_type:
-            self.icon_type = icon_type
-            for row in self.store:
-                row[COL_ICON] = get_pixbuf_for_game(
-                    row[COL_SLUG],
-                    icon_type,
-                    is_installed=row[COL_INSTALLED] if not self.search_mode else True,
-                )
-            self.emit("icons-changed", icon_type)
+        """Change the icon type"""
+        if icon_type == self.icon_type:
+            return
+        self.icon_type = icon_type
+        for row in self.store:
+            row[COL_ICON] = get_pixbuf_for_game(
+                row[COL_SLUG],
+                icon_type,
+                is_installed=row[COL_INSTALLED] if not self.search_mode else True,
+            )
+        self.emit("icons-changed", icon_type)

@@ -5,7 +5,7 @@ from lutris.util.log import logger
 
 DisplayConfig = namedtuple(
     "DisplayConfig",
-    ("monitors", "position", "transform", "primary", "scale")
+    ("monitors", "name", "position", "transform", "primary", "scale")
 )
 
 
@@ -364,6 +364,7 @@ class LogicalMonitor:
         ]
         return DisplayConfig(
             monitors,
+            self.monitors[0].name,
             self.position,
             self.transform,
             self.primary,
@@ -632,6 +633,9 @@ class MutterDisplayManager:
     def get_current_resolution(self):
         """Return the current resolution for the primary display"""
         current_mode = self.display_config.current_state.get_current_mode()
+        if not current_mode:
+            logger.error("Could not retrieve the current display mode")
+            return "", ""
         return str(current_mode.width), str(current_mode.height)
 
     def set_resolution(self, resolution):
@@ -644,6 +648,7 @@ class MutterDisplayManager:
                 return
             config = [DisplayConfig(
                 [(output.monitors[0].name, mode.id)],
+                output.monitors[0].name,
                 (0, 0),
                 0,
                 True,
