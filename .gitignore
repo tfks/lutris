@@ -16,5 +16,10 @@ venv
 tests/coverage/*
 /dist
 /lutris.egg-info
-/venv
-/build*
+
+# meson builddirs
+builddir
+
+# i18n files
+po/lutris.pot
+transl-builddir
