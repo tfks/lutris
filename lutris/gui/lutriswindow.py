@@ -131,9 +131,9 @@ class LutrisWindow(Gtk.ApplicationWindow):
         self.website_search_toggle.set_image(lutris_icon)
         self.website_search_toggle.set_label("Search Lutris.net")
         self.website_search_toggle.set_tooltip_text("Search Lutris.net")
-        self.sidebar_listbox = SidebarContainer(self)
-        self.sidebar_listbox.set_size_request(200, -1)
-        self.sidebar_listbox.set_visible(True)
+        self.sidebar_listbox = SidebarContainer(spacing=12, visible=True, lutris_window=self)
+        # self.sidebar_listbox.set_size_request(200, -1)
+        # self.sidebar_listbox.set_visible(True)
         self.sidebar_scrolled.add(self.sidebar_listbox)
 
         self.game_panel = GenericPanel(game_store=self.game_store, 
