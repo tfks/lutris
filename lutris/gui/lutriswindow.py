@@ -1,5 +1,6 @@
 """Main window for the Lutris interface."""
 # pylint: disable=no-member
+
 import os
 from collections import namedtuple
 
@@ -699,6 +700,7 @@ actions=self.actions, application=self.application)
 
     def on_show_installed_state_changed(self, action, value):
         """Callback to handle uninstalled game filter switch"""
+        logger.info("on_show_installed_state_changed")
         if action.get_state().get_boolean() != value.get_boolean():
             action.set_state(value)
             self.set_show_installed_state(value.get_boolean())

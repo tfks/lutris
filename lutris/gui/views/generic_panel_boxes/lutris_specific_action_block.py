@@ -35,12 +35,12 @@ class LutrisSpecificBlock(Gtk.VBox):
         self.cbox_installed_games_toggle = self.create_checkbox(
             visible=True,
             label="Installed Games Only",
-            active=True,
-            action="show-installed-only-changed",
-            callback=self.on_cbox_installed_games_toggle
+            active=self.filter_installed is True,
+            # action="show-installed-only-changed",
+            action=""
         )
 
-        self.cbox_installed_games_toggle.set_active(self.get_show_installed_games_onle_active_state())
+        self.cbox_installed_games_toggle.connect("toggled", self.on_cbox_installed_games_toggle)
 
         self.pack_start(self.cbox_installed_games_toggle, False, False, 6)
 
@@ -48,11 +48,13 @@ class LutrisSpecificBlock(Gtk.VBox):
         self.cbox_hidden_games_toggle = self.create_checkbox(
             visible=True,
             label="Show Hidden Games",
-            active=True,
+            active=self.show_hidden_games is True,
             # action="show-hidden-games-changed",
-            action="show-hidden-games",
-            callback=self.on_cbox_hidden_games_toggle
+            action=""
         )
+
+        self.cbox_hidden_games_toggle.connect("toggled", self.on_cbox_hidden_games_toggle)
+
         self.pack_start(self.cbox_hidden_games_toggle, False, False, 6)
 
         """Preferences"""
@@ -70,17 +72,16 @@ class LutrisSpecificBlock(Gtk.VBox):
             child.destroy()
         self.place_content()
 
-    def create_checkbox(self, visible, label, active, action, callback):
+    def create_checkbox(self, visible, label, active, action):
         cbox = Gtk.CheckButton()
         cbox.set_visible(True)
         cbox.set_label(gtk_safe(label))
-        # cbox.set_active(active)
+        cbox.set_active(active)
         # cbox.set_action_name(action)
         cbox.set_sensitive(True)
-        cbox.connect("toggled", callback)
         return cbox
 
-    def get_show_installed_games_onle_active_state(self):
+    def get_show_installed_games_only_active_state(self):
         return self.actions["show-installed-only"].get_state() is True
 
     def set_show_installed_games_only_controls_active(self, value):
