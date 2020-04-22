@@ -32,7 +32,11 @@
 }
 
 .grid, .list {
-  /*background: rgba(0, 0, 0, 0.2)*/
+  background-image: image(rgba(0, 0, 0, 0.2))
+}
+
+.grid *, .list * {
+  background-image: image(rgba(0, 0, 0, 0.0))
 }
 
 .grid button, .list button {
