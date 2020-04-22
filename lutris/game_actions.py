@@ -50,14 +50,14 @@ class GameActions:
     def get_play_control_actions(self):
         """Return a list of play control related actions and their callbacks"""
         return [
-            {
-                "show_game_details", "Show game details",
-                self.on_show_game_details
-            },
-            {
-                "hide_game_details", "Hide game details",
-                self.on_hide_game_details
-            },
+            #{
+            #    "show_game_details", "Show game details",
+            #    self.on_show_game_details
+            #},
+            #{
+            #    "hide_game_details", "Hide game details",
+            #    self.on_hide_game_details
+            #},
             (
                 "play", "Play",
                 self.on_game_run
@@ -181,8 +181,8 @@ class GameActions:
 
     def get_displayed_entries_play_controls(self):
         return {
-            "show_game_details": not self.game.is_installed,
-            "hide_game_details": not self.game.is_installed,
+            #"show_game_details": self.game.is_installed,
+            #"hide_game_details": self.game.is_installed,
             "install": not self.game.is_installed,
             "play": self.game.is_installed and not self.is_game_running,
             "stop": self.is_game_running
