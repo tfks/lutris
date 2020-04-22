@@ -20,6 +20,10 @@ Purpose: for own reference.
   
   **Game list/icon view**: Swapped `<root>/share/lutris/media/unavailable.png` for a darker type.
 
+tfk-ui-work branch: https://github.com/tfks/lutris/tree/tfk-ui-work
+tfk-ui-work clone:  git clone https://github.com/tfks/lutris.git
+tfk-ui-work zip:    https://github.com/tfks/lutris/archive/tfk-ui-work.zip
+
 .. image:: https://github.com/tfks/lutris/raw/tfk-ui-work/docs/img/lutris-current-state-001.png
 
 ******
