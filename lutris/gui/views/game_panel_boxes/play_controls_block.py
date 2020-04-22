@@ -13,6 +13,7 @@ class PlayControlsBlock(Gtk.VBox):
         self.game.connect("game-start", self.on_game_start)
         self.game.connect("game-started", self.on_game_started)
         self.game.connect("game-stopped", self.on_game_state_changed)
+
         self.place_content()
 
     def place_content(self):
@@ -31,6 +32,8 @@ class PlayControlsBlock(Gtk.VBox):
     def get_buttons_play_control_actions(self):
         displayed = self.game_actions.get_displayed_entries_play_controls()
         icon_map = {
+            "show_game_details": "arrow-left",
+            "hide_game_details": "arrow-right",
             "play": "media-playback-start",
             "stop": "media-playback-stop"
         }

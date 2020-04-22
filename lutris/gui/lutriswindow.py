@@ -36,6 +36,7 @@ from lutris.gui.views.grid import GameGridView
 from lutris.gui.views.menu import ContextualMenu
 from lutris.gui.views.store import GameStore
 from lutris.gui.views.game_panel import GamePanel, GenericPanel
+from lutris.gui.views.game_details import GameDetailsView
 from lutris.gui.widgets.utils import IMAGE_SIZES, open_uri
 
 
@@ -103,6 +104,7 @@ class LutrisWindow(Gtk.ApplicationWindow):
         self.search_mode = "local"
         self.game_store = self.get_store()
         self.view = self.get_view(view_type)
+        self.game_details_view = None
 
         GObject.add_emission_hook(Game, "game-updated", self.on_game_updated)
         GObject.add_emission_hook(Game, "game-removed", self.on_game_updated)
@@ -543,6 +545,15 @@ actions=self.actions, application=self.application)
             "view-%s-symbolic" % ("list" if view_type == "grid" else "grid"),
             Gtk.IconSize.BUTTON,
         )
+
+    def show_game_details(self):
+        self.view.set_visible(false)
+        self.game_details_view = GameDetailsView(self.game_store, self.game_actions)
+        self.game_details_view.set_visible(True)
+
+    def destroy_game_details(self):
+        self.game_details_view.destroy()
+        self.view.set_visible(True)
 
     def sync_library(self):
         """Synchronize games with local stuff and server."""
