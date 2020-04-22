@@ -20,7 +20,7 @@ Purpose: for own reference.
   
   **Game list/icon view**: Swapped `<root>/share/lutris/media/unavailable.png` for a darker type.
 
-![Lutris current state of tfk-ui-work branch](/../tfk-ui-work/docs/img/lutris-current-state-001.png?raw=true)
+.. image:: https://github.com/tfks/lutris/raw/tfk-ui-work/docs/img/lutris-current-state-001.png
 
 ******
 Lutris
