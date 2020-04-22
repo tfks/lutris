@@ -1,3 +1,27 @@
+Branch status (TFKS fork)
+=========================
+
+Purpose: for own reference.
+
+* Master: same as remote
+* tfk-ui-work: UI overhaul:
+
+  **Right side bar**: Instead of absolutely positioned, elements in right sidebar are added in flow.
+  
+  **Right side bar**: Redone layout.
+  
+  **Left side bar**: Redone layout.
+  
+  **Left side bar**: Split up the lists of runners and platforms.
+  
+  **Left side bar**: Made the list controls' background transparent to let the active theme determine the correct color.
+  
+  **Game list/icon view**: Added an opacity modifier to make the center view a bit darker.
+  
+  **Game list/icon view**: Swapped `<root>/share/lutris/media/unavailable.png` for a darker type.
+
+![Lutris current state of tfk-ui-work branch](/../tfk-ui-work/docs/img/lutris-current-state-001.png?raw=true)
+
 ******
 Lutris
 ******
