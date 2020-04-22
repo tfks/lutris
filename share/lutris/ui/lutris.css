@@ -41,7 +41,6 @@
 
 .grid button, .list button {
   background: transparent;
-  border: 2px solid red;
 }
 
 .panel-button label {
