@@ -18,6 +18,8 @@ class GameGridView(Gtk.IconView, GameView):
         self.model = self.game_store.modelsort
         super().__init__(model=self.model)
 
+        self.get_style_context().add_class("grid")
+
         self.set_column_spacing(1)
         self.set_pixbuf_column(COL_ICON)
         self.set_item_padding(1)

@@ -29,8 +29,8 @@ class SidebarRowPlatforms(SidebarRowBase):
 
 
 class SidebarHeaderPlatforms(SidebarHeaderBase):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, name, show_label=True):
+        super().__init__(name, show_label)
 
         self.add(Gtk.Separator())
         self.show_all()
@@ -55,7 +55,7 @@ class SidebarListBoxPlatforms(SidebarListBoxBase):
             self.add(SidebarRowPlatforms(platform, "platform", platform, icon))
 
         self.set_filter_func(self._filter_func)
-        # self.set_header_func(self._header_func)
+        self.set_header_func(self._header_func)
         self.update()
         self.show_all()
 
@@ -74,7 +74,7 @@ class SidebarListBoxPlatforms(SidebarListBoxBase):
             return
 
         if not before:
-            row.set_header(SidebarHeaderPlatforms("Platforms"))
+            row.set_header(SidebarHeaderPlatforms("Platforms", False))
 
     def update(self, *args):
         self.active_platforms = pga.get_used_platforms()

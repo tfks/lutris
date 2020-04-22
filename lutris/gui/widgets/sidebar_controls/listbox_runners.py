@@ -4,8 +4,8 @@ from lutris import runners
 from lutris.gui.config.runner import RunnerConfigDialog
 from lutris.gui.dialogs.runner_install import RunnerInstallDialog
 from lutris.gui.dialogs.runners import RunnersDialog
-
 from lutris.game import Game
+from lutris.gui.widgets.utils import get_default_button
 
 from lutris.gui.widgets.sidebar_controls.listbox_sidebar_base import SidebarRowBase, SidebarHeaderBase, SidebarListBoxBase
 
@@ -72,17 +72,20 @@ class SidebarRowRunners(SidebarRowBase):
 
 
 class SidebarHeaderRunners(SidebarHeaderBase):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, name, show_label=True):
+        super().__init__(name, show_label)
 
-        manage_runners_button = Gtk.Button.new_from_icon_name(
-            "emblem-system-symbolic", Gtk.IconSize.MENU
-        )
+        # manage_runners_button = Gtk.Button.new_from_icon_name(
+        #     "emblem-system-symbolic", Gtk.IconSize.MENU
+        # )
+
+        manage_runners_button = get_default_button("", "preferences-system-symbolic")
+        manage_runners_button.set_tooltip_text(name)
 
         manage_runners_button.props.action_name = "win.manage-runners"
-        manage_runners_button.props.relief = Gtk.ReliefStyle.NONE
-        manage_runners_button.set_margin_right(16)
-        manage_runners_button.get_style_context().add_class("sidebar-button")
+        # manage_runners_button.props.relief = Gtk.ReliefStyle.NONE
+        # manage_runners_button.set_margin_right(16)
+        # manage_runners_button.get_style_context().add_class("sidebar-button")
 
         self.add_control(manage_runners_button)
 
@@ -134,7 +137,7 @@ class SidebarListBoxRunners(SidebarListBoxBase):
             return
 
         if not before:
-            row.set_header(SidebarHeaderRunners("Manage Runners: "))
+            row.set_header(SidebarHeaderRunners("Manage Runners: ", False))
 
     def update(self, *args):
         self.installed_runners = [runner.name for runner in runners.get_installed()]

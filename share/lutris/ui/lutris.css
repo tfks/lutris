@@ -8,6 +8,11 @@
   background-color: rgb(255, 199, 116);
 }
 
+.sidebar {
+  background: transparent;
+  border: 0;
+}
+
 .sidebar button {
   padding: 0;
   border: 0;
@@ -18,12 +23,29 @@
   border: 0;
 }
 
+.sidebar-header {
+  background: transparent;
+}
+
+.sidebar-row {
+  background: transparent
+}
+
+.grid, .list {
+  /*background: rgba(0, 0, 0, 0.2)*/
+}
+
+.grid button, .list button {
+  background: transparent;
+  border: 2px solid red;
+}
+
 .panel-button label {
     font-weight: normal;
 }
 
 row:selected {
-  background: transparent;
+
 }
 row:hover {
   background: rgba(0, 0, 0, 0.1);

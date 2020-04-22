@@ -10,6 +10,8 @@ class SidebarRowBase(Gtk.ListBoxRow):
         self.id = id_
         self.btn_box = None
 
+        self.get_style_context().add_class("sidebar-row")
+
         self.box = Gtk.Box(spacing=6, margin_start=9, margin_end=9)
 
         # Construct the left column icon space.
@@ -57,9 +59,12 @@ class SidebarRowBase(Gtk.ListBoxRow):
     def add_button(self, button):
         self.btn_box.pack_start(button, False, False, 0)
 
+    def add_button_stretched(self, button):
+        self.btn_box.pack_start(button, False, False, 6)
+
 
 class SidebarHeaderBase(Gtk.Box):
-    def __init__(self, name):
+    def __init__(self, name, show_label=True):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.get_style_context().add_class("sidebar-header")
         label = Gtk.Label(
@@ -70,13 +75,16 @@ class SidebarHeaderBase(Gtk.Box):
         )
         label.get_style_context().add_class("dim-label")
         self.box = Gtk.Box(margin_start=9, margin_top=6, margin_bottom=6, margin_right=6)
-        self.box.add(label)
+
+        label.set_visible(show_label)
+
+        # self.box.add(label)
         self.add(self.box)
 
         self.show_all()
 
     def add_control(self, control):
-        self.box.pack_start(control, False, False, 0)
+        self.box.pack_start(control, True, True, 6)
 
 
 class SidebarListBoxBase(Gtk.ListBox):
