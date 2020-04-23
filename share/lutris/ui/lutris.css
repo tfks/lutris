@@ -35,6 +35,10 @@
   background-image: image(rgba(0, 0, 0, 0.2))
 }
 
+.game-details {
+  /*background-image: image(rgba(0, 0, 0, 0.5))*/
+}
+
 .grid *, .list * {
   background-image: image(rgba(0, 0, 0, 0.0))
 }

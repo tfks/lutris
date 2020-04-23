@@ -114,6 +114,9 @@ class LutrisWindow(Gtk.ApplicationWindow):
         GObject.add_emission_hook(GenericPanel, "show-installed-only-changed-from-generic-panel", self.on_show_installed_state_changed_from_generic_panel)
         GObject.add_emission_hook(GenericPanel, "show-hidden-games-changed-from-generic-panel", self.hidden_state_change_from_generic_panel)
         self.connect("delete-event", self.on_window_delete)
+
+        self._game_details_view_visible = False
+
         if self.maximized:
             self.maximize()
         self.init_template()
@@ -366,6 +369,10 @@ actions=self.actions, application=self.application)
     def show_hidden_games(self):
         return settings.read_setting("show_hidden_games").lower() == "true"
 
+    @property
+    def game_details_view_visible(self):
+        return self._game_details_view_visible
+
     def get_store(self, games=None):
         """Return an instance of GameStore"""
         games = games or pga.get_games(show_installed_first=self.show_installed_first)
@@ -547,12 +554,16 @@ actions=self.actions, application=self.application)
         )
 
     def show_game_details(self):
-        self.view.set_visible(false)
-        self.game_details_view = GameDetailsView(self.game_store, self.game_actions)
+        self._game_details_view_visible = True
+        self.view.destroy()
+        self.game_details_view = GameDetailsView(spacing=6, visible=True, store=self.game_store, game_actions=self.game_actions)
         self.game_details_view.set_visible(True)
+        self.games_scrollwindow.add(self.game_details_view)
 
     def destroy_game_details(self):
+        self._game_details_view_visible = False
         self.game_details_view.destroy()
+        self.switch_view(self.viewtype)
         self.view.set_visible(True)
 
     def sync_library(self):
@@ -829,6 +840,9 @@ actions=self.actions, application=self.application)
 
     def game_selection_changed(self, _widget, game):
         """Callback to handle the selection of a game in the view"""
+        if self.game_details_view_visible:
+            return True
+
         child = self.game_scrolled.get_child()
         if child:
             self.game_scrolled.remove(child)

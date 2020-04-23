@@ -8,6 +8,7 @@ from lutris.gui.views import (
     COL_NAME,
     COL_ICON,
 )
+from lutris.util.log import logger
 
 
 class GameGridView(Gtk.IconView, GameView):

@@ -176,6 +176,22 @@ def convert_to_background(background_path, target_size=(320, 1080)):
 
     return background
 
+def convert_to_background_generic(background_path, target_size):
+    target_width, target_height = target_size
+    coverart = Image.open(background_path)
+    coverart = coverart.convert("RGBA")
+    coverart = coverart.resize((target_width, target_height), resample=Image.BICUBIC)
+
+    background = Image.new('RGBA', (target_width, target_height), (0, 0, 0, 0))
+    mask = Image.open(os.path.join(datapath.get(), "media/mask.png"))
+
+    mask = mask.resize((target_width, target_height), resample=Image.BICUBIC)
+
+    background.paste(coverart, mask=mask)
+
+    dest_path = os.path.join(settings.CACHE_DIR, "customized_panel_bg.png")
+    background.save(dest_path)
+    return dest_path
 
 def image2pixbuf(image):
     """Converts a PIL Image to a GDK Pixbuf"""

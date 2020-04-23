@@ -1,7 +1,7 @@
 from gi.repository import Gtk
 
 
-class PlayControlsBlock(Gtk.VBox):
+class PlayControlsBlock(Gtk.Box):
     """Panel containing the play controls for the game panel"""
 
     def __init__(self, spacing, visible, game, game_actions):
@@ -20,8 +20,12 @@ class PlayControlsBlock(Gtk.VBox):
         self.buttons = self.get_buttons_play_control_actions()
 
         for action_id, button in self.buttons.items():
-            button.set_size_request(-1, 20)
-            self.pack_start(button, False, False, 6)
+            if action_id == "show_game_details" or action_id == "hide_game_details":
+                button.set_size_request(32, 32)
+                self.pack_start(button, False, False, 2)
+            else:
+                button.set_size_request(-1, 20)
+                self.pack_start(button, True, True, 0)
 
     def refresh(self):
         """Redraw the panel"""
@@ -32,7 +36,7 @@ class PlayControlsBlock(Gtk.VBox):
     def get_buttons_play_control_actions(self):
         displayed = self.game_actions.get_displayed_entries_play_controls()
         icon_map = {
-            "show_game_details": "arrow-left",
+            "show_game_details": "view-list-details",
             "hide_game_details": "arrow-right",
             "play": "media-playback-start",
             "stop": "media-playback-stop"
@@ -40,6 +44,7 @@ class PlayControlsBlock(Gtk.VBox):
         buttons = {}
         for action in self.game_actions.get_play_control_actions():
             action_id, label, callback = action
+
             if action_id in icon_map:
                 button = Gtk.Button.new_from_icon_name(
                     icon_map[action_id], Gtk.IconSize.MENU
