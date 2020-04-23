@@ -95,7 +95,7 @@ class mame(Runner):  # pylint: disable=invalid-name
             "type": "choice",
             "label": "Platform",
             "choices": (
-                ("Arcade", "0"),
+                ("Auto", ""),
                 ("Plug & Play TV games", "1"),
                 ("LCD handheld games", "2")
             ),
@@ -119,6 +119,16 @@ class mame(Runner):  # pylint: disable=invalid-name
     ]
 
     runner_options = [
+        {
+            "option": "rompath",
+            "type": "directory_chooser",
+            "label": "ROM/BIOS path",
+            "help": (
+                "Choose the folder containing ROMs and BIOS files.\n"
+                "These files contain code from the original hardware "
+                "necessary to the emulation."
+            ),
+        },
         {
             "option": "fullscreen",
             "type": "bool",
@@ -176,7 +186,7 @@ class mame(Runner):  # pylint: disable=invalid-name
 
     @property
     def working_dir(self):
-        return self.config_dir
+        return os.path.join(settings.RUNNER_DIR, "mame")
 
     def write_xml_list(self):
         """Write the full game list in XML to disk"""
@@ -208,7 +218,9 @@ class mame(Runner):  # pylint: disable=invalid-name
             except OSError:
                 pass
             subprocess.Popen(
-                [self.get_executable(), "-createconfig"], stdout=subprocess.PIPE
+                [self.get_executable(), "-createconfig", "-inipath", self.config_dir],
+                stdout=subprocess.PIPE,
+                cwd=self.working_dir
             )
         return True
 
