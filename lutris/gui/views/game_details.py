@@ -1,6 +1,8 @@
 from gi.repository import Gtk, Gdk
 from lutris.gui.widgets.utils import get_pixbuf_for_game
 from lutris.gui.widgets.utils import convert_to_background_generic
+from lutris.gui.views.game_detail_controls.related_apps import RelatedApplications
+from lutris.gui.views.game_detail_controls.other_versions import OtherVersions
 
 
 class GameDetailsView(Gtk.VBox):
@@ -12,26 +14,36 @@ class GameDetailsView(Gtk.VBox):
         self.game_actions = game_actions
         self.game = game_actions.game
 
+        self.allocation_values = None
+
         self.get_style_context().add_class("game-details")
+
+        self.connect_signals()
 
         self.set_background()
 
         self.place_content()
 
-        self.connect_signals()
-
     def set_background(self):
-        bg_path = convert_to_background_generic("/home/tfk/.local/share/lutris/covers/star-trek-starfleet-command-iii.jpg", target_size=(1920, 1080))
+        bg_width = 1920
+        bg_height = 1080
+
+        bg_path = convert_to_background_generic(
+            "/home/tfk/.local/share/lutris/covers/star-trek-starfleet-command-iii.jpg", (bg_width, bg_height),
+            True
+        )
+
         if not bg_path:
             return
 
         style = Gtk.StyleContext()
-        # style = self.get_style_context()
         style.add_class(Gtk.STYLE_CLASS_VIEW)
         bg_provider = Gtk.CssProvider()
         bg_provider.load_from_data(
             ('.game-details { background-image: url("%s"); '
              "background-repeat: no-repeat; "
+             "background-position: center center; "
+             "background-size: cover; "
              "background-color: rgba(0, 0, 0, 0.5)}" % bg_path).encode("utf-8")
         )
         Gtk.StyleContext.add_provider_for_screen(
@@ -54,11 +66,19 @@ class GameDetailsView(Gtk.VBox):
 
         self.pack_start(box_header, False, False, 6)
 
+        other_versions = OtherVersions(6, True, self.game_store)
+
+        self.pack_start(other_versions, False, False, 6)
+
+        related_apps = RelatedApplications(6, True, self.game_store)
+
+        self.pack_start(related_apps, False, False, 6)
+
         box_content_dummy = Gtk.Box(spacing=6, visible=True)
 
         self.pack_end(box_content_dummy, True, True, 6)
 
-        self.set_center_widget(box_content_dummy)
+        # self.set_center_widget(box_content_dummy)
 
     def connect_signals(self):
         return
@@ -67,7 +87,7 @@ class GameDetailsView(Gtk.VBox):
         """Return the game icon"""
         icon = Gtk.Image.new_from_pixbuf(get_pixbuf_for_game(self.game.slug, "icon"))
         icon.show()
-        icon.set_size_request(32,32)
+        icon.set_size_request(32, 32)
         return icon
 
     def set_label_game_title_styles(self, game_title_label):

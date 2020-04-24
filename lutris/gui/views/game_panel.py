@@ -19,11 +19,18 @@ class GamePanel(GenericPanel):
         "panel-closed": (GObject.SIGNAL_RUN_FIRST, None, ()),
     }
 
-    def __init__(self, game_actions, actions, game_store):
+    def __init__(
+        self,
+        game_actions,
+        actions,
+        game_store,
+        main_window
+    ):
         self.game_actions = game_actions
         self.actions = actions
         self.game_store = game_store
         self.game = game_actions.game
+        self.main_window = main_window
         super().__init__(game_store=self.game_store, actions=self.actions)
         self.set_margin_left(10)
         self.set_margin_right(10)
@@ -32,25 +39,53 @@ class GamePanel(GenericPanel):
         vbox = Gtk.VBox(spacing=0, visible=True)
 
         """Game panel title block"""
-        game_panel_title_block = GamePanelTitleBlock(spacing=6, visible=True, game=self.game, parent_widget=self)
+        game_panel_title_block = GamePanelTitleBlock(
+            spacing=6,
+            visible=True,
+            game=self.game,
+            parent_widget=self
+        )
+
         vbox.pack_start(game_panel_title_block, False, False, 12)
 
         """Game labels block"""
-        game_labels_block = GameLabelsBlock(spacing=0, visible=True, game=self.game)
+        game_labels_block = GameLabelsBlock(
+            spacing=0,
+            visible=True,
+            game=self.game
+        )
+
         vbox.pack_start(game_labels_block, False, False, 12)
 
         """Play controls block"""
-        play_controls_block = PlayControlsBlock(spacing=0, visible=True, game=self.game, game_actions=self.game_actions)
+        play_controls_block = PlayControlsBlock(
+            spacing=0,
+            visible=True,
+            game=self.game,
+            game_actions=self.game_actions,
+            main_window=self.main_window
+        )
 
         vbox.pack_start(play_controls_block, False, False, 12)
 
         """Runners block"""
-        runners_block = RunnersBlock(visible=True, layout=Gtk.ButtonBoxStyle.EDGE, spacing=4, game_actions=self.game_actions)
+        runners_block = RunnersBlock(
+            visible=True,
+            layout=Gtk.ButtonBoxStyle.EDGE,
+            spacing=4,
+            game_actions=self.game_actions
+        )
 
         vbox.pack_start(runners_block, False, False, 12)
 
         """Game options"""
-        game_options_block = GameOptionsBlock(spacing=4, visible=True, game_actions=self.game_actions, title="Game options", parent_widget=self)
+        game_options_block = GameOptionsBlock(
+            spacing=4,
+            visible=True,
+            game_actions=self.game_actions,
+            title="Game options",
+            parent_widget=self
+        )
 
         vbox.pack_start(game_options_block, False, False, 12)
 
@@ -58,12 +93,22 @@ class GamePanel(GenericPanel):
         self.buttons_wine_actions = self.get_buttons_for_wine_actions()
 
         if self.buttons_wine_actions.items():
-            wine_actions_block = WineActionsBlock(spacing=0, visible=True, buttons=self.buttons_wine_actions, title="Wine options")
+            wine_actions_block = WineActionsBlock(
+                spacing=0,
+                visible=True,
+                buttons=self.buttons_wine_actions,
+                title="Wine options"
+            )
 
             vbox.pack_start(wine_actions_block, False, False, 12)
 
         """Other actions"""
-        other_actions_block = OtherActionsBlock(spacing=0, visible=True, game_actions=self.game_actions, title="Other options")
+        other_actions_block = OtherActionsBlock(
+            spacing=0,
+            visible=True,
+            game_actions=self.game_actions,
+            title="Other options"
+        )
 
         vbox.pack_start(other_actions_block, True, True, 12)
 

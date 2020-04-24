@@ -7,6 +7,7 @@ except ImportError:
     Image = None
 from gi.repository import GdkPixbuf, GLib, Gtk, Gio, Gdk
 
+from lutris.util.imaging.image_manipulation import resize_image_from_path
 from lutris.util.log import logger
 from lutris.util import datapath
 from lutris.util import system
@@ -176,21 +177,31 @@ def convert_to_background(background_path, target_size=(320, 1080)):
 
     return background
 
-def convert_to_background_generic(background_path, target_size):
+def convert_to_background_generic(background_path, target_size, keep_aspect_ratio):
     target_width, target_height = target_size
-    coverart = Image.open(background_path)
-    coverart = coverart.convert("RGBA")
-    coverart = coverart.resize((target_width, target_height), resample=Image.BICUBIC)
 
-    background = Image.new('RGBA', (target_width, target_height), (0, 0, 0, 0))
+    image = resize_image_from_path(background_path, target_size, keep_aspect_ratio)
+
+    target_height_crop = 1000
+
+    image = image.crop((0, 0, target_width, target_height_crop))
+
+    # Resize canvas, add transparency to bottom
+    image_bg = Image.new("RGBA", target_size, (0, 0, 0, 0))
+    image_bg.paste(image, (0, 0, target_width, image.height))
+
+    # Apply a tint to the base image
+    tint = Image.new('RGBA', (target_width, target_height), (0, 0, 0, 255))
+    image_bg = Image.blend(image_bg, tint, 0.6)
+
+    background = Image.new("RGBA", target_size, (0, 0, 0, 0))
     mask = Image.open(os.path.join(datapath.get(), "media/mask.png"))
-
-    mask = mask.resize((target_width, target_height), resample=Image.BICUBIC)
-
-    background.paste(coverart, mask=mask)
+    mask = mask.resize(target_size, resample=Image.BICUBIC)
+    background.paste(image_bg, mask=mask)
 
     dest_path = os.path.join(settings.CACHE_DIR, "customized_panel_bg.png")
     background.save(dest_path)
+
     return dest_path
 
 def image2pixbuf(image):

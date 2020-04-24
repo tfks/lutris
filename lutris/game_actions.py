@@ -232,12 +232,10 @@ class GameActions:
 
     def on_show_game_details(self, caller):
         """Display the game details view"""
-        logger.info("257::on_show_game_details")
         self.window.show_game_details()
 
     def on_hide_game_details(self, caller):
         """Hide the game details view"""
-        logger.info("267::on_hide_game_details")
         self.window.destroy_game_details()
 
     def on_game_run(self, *_args):

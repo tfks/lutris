@@ -50,6 +50,11 @@ class LutrisWindow(Gtk.ApplicationWindow):
 
     __gtype_name__ = "LutrisWindow"
 
+    __gsignals__ = {
+        "game-details-view-shown": (GObject.SIGNAL_RUN_FIRST, None, ()),
+        "game-details-view-hidden": (GObject.SIGNAL_RUN_FIRST, None, ()),
+    }
+
     main_box = GtkTemplate.Child()
     view_menu_widget = GtkTemplate.Child()
     games_scrollwindow = GtkTemplate.Child()
@@ -109,10 +114,25 @@ class LutrisWindow(Gtk.ApplicationWindow):
         GObject.add_emission_hook(Game, "game-updated", self.on_game_updated)
         GObject.add_emission_hook(Game, "game-removed", self.on_game_updated)
         GObject.add_emission_hook(Game, "game-started", self.on_game_started)
-        GObject.add_emission_hook(Game, "game-installed", self.on_game_installed)
-        GObject.add_emission_hook(GenericPanel, "running-game-selected-from-generic-panel", self.game_selection_changed)
-        GObject.add_emission_hook(GenericPanel, "show-installed-only-changed-from-generic-panel", self.on_show_installed_state_changed_from_generic_panel)
-        GObject.add_emission_hook(GenericPanel, "show-hidden-games-changed-from-generic-panel", self.hidden_state_change_from_generic_panel)
+        GObject.add_emission_hook(
+            Game,
+            "game-installed",
+            self.on_game_installed
+        )
+        GObject.add_emission_hook(
+            GenericPanel,
+            "running-game-selected-from-generic-panel",
+            self.game_selection_changed
+        )
+        GObject.add_emission_hook(
+            GenericPanel,
+            "show-installed-only-changed-from-generic-panel", self.on_show_installed_state_changed_from_generic_panel
+        )
+        GObject.add_emission_hook(
+            GenericPanel,
+            "show-hidden-games-changed-from-generic-panel",
+            self.hidden_state_change_from_generic_panel
+        )
         self.connect("delete-event", self.on_window_delete)
 
         self._game_details_view_visible = False
@@ -136,23 +156,35 @@ class LutrisWindow(Gtk.ApplicationWindow):
         self.website_search_toggle.set_image(lutris_icon)
         self.website_search_toggle.set_label("Search Lutris.net")
         self.website_search_toggle.set_tooltip_text("Search Lutris.net")
-        self.sidebar_listbox = SidebarContainer(spacing=12, visible=True, lutris_window=self)
-        # self.sidebar_listbox.set_size_request(200, -1)
-        # self.sidebar_listbox.set_visible(True)
+
+        self.sidebar_listbox = SidebarContainer(
+            spacing=12,
+            visible=True,
+            lutris_window=self
+        )
+
         self.sidebar_scrolled.add(self.sidebar_listbox)
 
-        self.game_panel = GenericPanel(game_store=self.game_store, 
-actions=self.actions, application=self.application)
+        self.game_panel = GenericPanel(
+            game_store=self.game_store,
+            actions=self.actions,
+            application=self.application
+        )
 
         self.game_scrolled = Gtk.ScrolledWindow(visible=True)
         self.game_scrolled.set_size_request(320, -1)
         self.game_scrolled.get_style_context().add_class("game-scrolled")
-        self.game_scrolled.set_policy(Gtk.PolicyType.EXTERNAL, Gtk.PolicyType.EXTERNAL)
+        self.game_scrolled.set_policy(
+            Gtk.PolicyType.EXTERNAL,
+            Gtk.PolicyType.EXTERNAL
+        )
         self.game_scrolled.add(self.game_panel)
 
         self.panel_revealer = Gtk.Revealer(visible=True)
         self.panel_revealer.set_transition_duration(300)
-        self.panel_revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_LEFT)
+        self.panel_revealer.set_transition_type(
+            Gtk.RevealerTransitionType.SLIDE_LEFT
+        )
         self.panel_revealer.add(self.game_scrolled)
 
         self.main_box.pack_end(self.panel_revealer, False, False, 0)
@@ -556,15 +588,24 @@ actions=self.actions, application=self.application)
     def show_game_details(self):
         self._game_details_view_visible = True
         self.view.destroy()
-        self.game_details_view = GameDetailsView(spacing=6, visible=True, store=self.game_store, game_actions=self.game_actions)
+
+        self.game_details_view = GameDetailsView(
+            spacing=0,
+            visible=True,
+            store=self.game_store,
+            game_actions=self.game_actions
+        )
+
         self.game_details_view.set_visible(True)
         self.games_scrollwindow.add(self.game_details_view)
+        self.emit("game-details-view-shown")
 
     def destroy_game_details(self):
         self._game_details_view_visible = False
         self.game_details_view.destroy()
-        self.switch_view(self.viewtype)
+        self.switch_view(self.current_view_type)
         self.view.set_visible(True)
+        self.emit("game-details-view-hidden")
 
     def sync_library(self):
         """Synchronize games with local stuff and server."""
@@ -834,9 +875,17 @@ actions=self.actions, application=self.application)
         self.invalidate_game_filter()
 
     def make_generic_panel_event_connections(self):
-        self.game_panel.connect("running-game-selected-from-generic-panel", self.game_selection_changed)
-        self.game_panel.connect("show-installed-only-changed-from-generic-panel", self.on_show_installed_state_changed_from_generic_panel)
-        self.game_panel.connect("show-hidden-games-changed-from-generic-panel", self.hidden_state_change_from_generic_panel)
+        self.game_panel.connect(
+            "running-game-selected-from-generic-panel",
+            self.game_selection_changed
+        )
+        self.game_panel.connect(
+            "show-installed-only-changed-from-generic-panel", self.on_show_installed_state_changed_from_generic_panel
+        )
+        self.game_panel.connect(
+            "show-hidden-games-changed-from-generic-panel",
+            self.hidden_state_change_from_generic_panel
+        )
 
     def game_selection_changed(self, _widget, game):
         """Callback to handle the selection of a game in the view"""
@@ -864,7 +913,8 @@ actions=self.actions, application=self.application)
             self.game_panel = GamePanel(
                 game_actions=self.game_actions,
                 actions=self.actions,
-                game_store=self.game_store
+                game_store=self.game_store,
+                main_window=self
             )
 
             self.view.set_selected_game(game.id)
@@ -879,6 +929,9 @@ actions=self.actions, application=self.application)
         return True
 
     def on_panel_closed(self, panel):
+        if self.game_details_view_visible:
+            self.destroy_game_details()
+
         self.game_selection_changed(panel, None)
 
     def update_game(self, slug):
