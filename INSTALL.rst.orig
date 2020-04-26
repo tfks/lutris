@@ -57,10 +57,10 @@ Installation
 To install Lutris, please follow instructions listed on our `Downloads Page <https://lutris.net/downloads/>`_.
 Getting Lutris from a PPA or a repository is the preferred way of installing
 <<<<<<< HEAD
-it and we *strongly advice* to use this method if you can.
-=======
 it and we *strongly advise* to use this method if you can.
->>>>>>> 267fe0ca... Improve Installation guide
+=======
+it and we *strongly advice* to use this method if you can.
+>>>>>>> 6b5ea924f49b11d62e1de8dd6a485c2b2dcd1dc6
 
 However, if the instructions on our Downloads page don't apply to your Linux
 distribution or there's some other reason you can't get it from a package,
