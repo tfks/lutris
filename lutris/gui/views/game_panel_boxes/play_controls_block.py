@@ -44,7 +44,7 @@ class PlayControlsBlock(Gtk.Box):
         for action_id, button in self.buttons.items():
             if action_id == "show_game_details" or action_id == "hide_game_details":
                 button.set_size_request(32, 32)
-                button.set_visible(False) # for now...
+                # button.set_visible(False) # for now...
                 self.pack_start(button, False, False, 2)
             else:
                 button.set_size_request(-1, 20)
