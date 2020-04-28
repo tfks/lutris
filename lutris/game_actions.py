@@ -1,23 +1,31 @@
 """Handle game specific actions"""
+
+# Standard Library
+# pylint: disable=too-many-public-methods
 import os
 import signal
+
+# Third Party Libraries
 from gi.repository import Gio
+
+# Lutris Modules
 from lutris import pga
 from lutris.command import MonitoredCommand
 from lutris.game import Game
 from lutris.gui import dialogs
-from lutris.gui.widgets.utils import open_uri
 from lutris.gui.config.add_game import AddGameDialog
 from lutris.gui.config.edit_game import EditGameConfigDialog
-from lutris.gui.installerwindow import InstallerWindow
-from lutris.gui.dialogs.uninstall_game import UninstallGameDialog
 from lutris.gui.dialogs.log import LogWindow
-from lutris.util.system import path_exists
-from lutris.util.log import logger
+from lutris.gui.dialogs.uninstall_game import UninstallGameDialog
+from lutris.gui.installerwindow import InstallerWindow
+from lutris.gui.widgets.utils import open_uri
 from lutris.util import xdgshortcuts
+from lutris.util.log import logger
+from lutris.util.system import path_exists
 
 
 class GameActions:
+
     """Regroup a list of callbacks for a game"""
 
     def __init__(self, application=None, window=None):
@@ -50,21 +58,25 @@ class GameActions:
     def get_play_control_actions(self):
         """Return a list of play control related actions and their callbacks"""
         return [
+            ("play", "Play", self.on_game_run),
+            ("stop", "Stop", self.on_stop),
+            ("show_logs", "Show logs", self.on_show_logs),
+            ("install", "Install", self.on_install_clicked),
+            ("add", "Add installed game", self.on_add_manually),
+            ("configure", "Configure", self.on_edit_game_configuration),
+            ("execute-script", "Execute script", self.on_execute_script_clicked),
+            ("browse", "Browse files", self.on_browse_files),
             (
                 "show_game_details", "Show game details",
                 self.on_show_game_details
             ),
             (
+                "desktop-shortcut",
+                "Create desktop shortcut",
+            ),
+            (
                 "hide_game_details", "Hide game details",
                 self.on_hide_game_details
-            ),
-            (
-                "play", "Play",
-                self.on_game_run
-            ),
-            (
-                "stop", "Stop",
-                self.on_stop
             ),
             (
                 "install", "Install",
@@ -76,14 +88,12 @@ class GameActions:
         """Return a list of main actions and their callbacks"""
         return [
             (
-                "show_logs", "Show logs",
-                self.on_show_logs
-            ),
-            (
                 "configure", "Configure",
-                self.on_edit_game_configuration
+                self.on_edit_game_configuration,
             ),
             (
+                "install", "Install",
+                self.on_install_clicked
                 "browse", "Browse files",
                 self.on_browse_files
             )
@@ -93,44 +103,28 @@ class GameActions:
         """Return a list of game actions and their callbacks"""
         return [
             (
-                "add", "Add installed game",
-                self.on_add_manually
-            ),
-            (
-                "execute-script", "Execute script",
-                self.on_execute_script_clicked
-            ),
-            (
-                "desktop-shortcut", "Create desktop shortcut",
                 self.on_create_desktop_shortcut,
             ),
             (
-                "rm-desktop-shortcut", "Delete desktop shortcut",
+                "rm-desktop-shortcut",
+                "Delete desktop shortcut",
                 self.on_remove_desktop_shortcut,
             ),
             (
-                "menu-shortcut", "Create application menu shortcut",
+                "menu-shortcut",
+                "Create application menu shortcut",
                 self.on_create_menu_shortcut,
             ),
             (
-                "rm-menu-shortcut", "Delete application menu shortcut",
+                "rm-menu-shortcut",
+                "Delete application menu shortcut",
                 self.on_remove_menu_shortcut,
             ),
-            (
-                "install_more", "Install another version",
-                self.on_install_clicked
-            ),
-            (
-                "view", "View on Lutris.net",
-                self.on_view_game
-            ),
-            (
-                "hide", "Hide game from library",
-                self.on_hide_game
-            ),
-            (
-                "unhide", "Unhide game from library",
-                self.on_unhide_game
+            ("install_more", "Install another version", self.on_install_clicked),
+            ("remove", "Remove", self.on_remove_game),
+            ("view", "View on Lutris.net", self.on_view_game),
+            ("hide", "Hide game from library", self.on_hide_game),
+            ("unhide", "Unhide game from library", self.on_unhide_game),
             )
         ]
 
@@ -183,15 +177,15 @@ class GameActions:
         return {
             "show_game_details": self.game.is_installed and not self.window.game_details_view_visible,
             "hide_game_details": self.game.is_installed and self.window.game_details_view_visible,
-            "install": not self.game.is_installed,
-            "play": self.game.is_installed and not self.is_game_running,
+            "install":
+            not self.game.is_installed,
             "stop": self.is_game_running
         }
 
     def get_displayed_entries_runner_actions(self):
         return {
-            "show_logs": self.game.is_installed,
-            "configure": bool(self.game.is_installed),
+            self.game.is_installed,
+            "configure":
             "browse": self.game.is_installed and self.game.runner_name != "browser"
         }
 
@@ -199,30 +193,22 @@ class GameActions:
         """Return a dictionary of actions that should be shown for a game"""
         return {
             "add": not self.game.is_installed and not self.game.is_search_result,
-            "install_more": self.game.is_installed and not self.game.is_search_result,
-            "execute-script": bool(
-                self.game.is_installed
-                and self.game.runner.system_config.get("manual_command")
-            ),
-            "desktop-shortcut": (
-                self.game.is_installed
-                and not xdgshortcuts.desktop_launcher_exists(self.game.slug, self.game.id)
-            ),
-            "menu-shortcut": (
-                self.game.is_installed
-                and not xdgshortcuts.menu_launcher_exists(self.game.slug, self.game.id)
-            ),
-            "rm-desktop-shortcut": bool(
-                self.game.is_installed
-                and xdgshortcuts.desktop_launcher_exists(self.game.slug, self.game.id)
-            ),
-            "rm-menu-shortcut": bool(
-                self.game.is_installed
-                and xdgshortcuts.menu_launcher_exists(self.game.slug, self.game.id)
-            ),
-            "view": True,
-            "hide": not GameActions.is_game_hidden(self.game),
-            "unhide": GameActions.is_game_hidden(self.game)
+            "menu-shortcut":
+            (self.game.is_installed and not xdgshortcuts.menu_launcher_exists(self.game.slug, self.game.id)),
+            "rm-desktop-shortcut":
+            bool(self.game.is_installed and xdgshortcuts.desktop_launcher_exists(self.game.slug, self.game.id)),
+            "rm-menu-shortcut":
+            bool(self.game.is_installed and xdgshortcuts.menu_launcher_exists(self.game.slug, self.game.id)),
+            "browse":
+            self.game.is_installed and self.game.runner_name != "browser",
+            "remove":
+            not self.game.is_search_result,
+            "view":
+            True,
+            "hide":
+            not GameActions.is_game_hidden(self.game),
+            "unhide":
+            GameActions.is_game_hidden(self.game)
         }
 
     def get_displayed_entries_other_actions(self):
@@ -247,15 +233,16 @@ class GameActions:
             game = self.application.running_games.get_item(i)
             if game == self.game:
                 return game
+        return None
 
-    def on_stop(self, caller):
+    def on_stop(self, caller):  # pylint: disable=unused-argument
         """Stops the game"""
 
         matched_game = self.get_running_game()
         if not matched_game:
-            logger.warning("Game %s not in the %s running games",
-                           self.game_id,
-                           self.application.running_games.get_n_items())
+            logger.warning(
+                "Game %s not in the %s running games", self.game_id, self.application.running_games.get_n_items()
+            )
             return
         if not matched_game.game_thread:
             logger.warning("Game %s doesn't appear to be running, not killing it", self.game_id)
@@ -269,9 +256,7 @@ class GameActions:
     def on_show_logs(self, _widget):
         """Display game log"""
         return LogWindow(
-            title="Log for {}".format(self.game),
-            buffer=self.game.log_buffer,
-            application=self.application
+            title="Log for {}".format(self.game), buffer=self.game.log_buffer, application=self.application
         )
 
     def on_install_clicked(self, *_args):
@@ -330,6 +315,4 @@ class GameActions:
 
     def on_remove_game(self, *_args):
         """Callback that present the uninstall dialog to the user"""
-        UninstallGameDialog(
-            game_id=self.game.id, callback=self.window.remove_game_from_view, parent=self.window
-        )
+        UninstallGameDialog(game_id=self.game.id, callback=self.window.remove_game_from_view, parent=self.window)

@@ -1,5 +1,8 @@
 """Game panel"""
-from gi.repository import Gtk, GObject
+# Third Party Libraries
+from gi.repository import GObject, Gtk, Pango
+
+# Lutris Modules
 from lutris import runners
 from lutris.gui.widgets.utils import get_link_button
 from lutris.gui.views.generic_panel import GenericPanel
@@ -13,6 +16,7 @@ from lutris.gui.views.game_panel_boxes.other_actions_block import OtherActionsBl
 
 
 class GamePanel(GenericPanel):
+
     """Panel allowing users to interact with a game"""
 
     __gsignals__ = {
@@ -53,7 +57,6 @@ class GamePanel(GenericPanel):
             spacing=0,
             visible=True,
             game=self.game
-        )
 
         vbox.pack_start(game_labels_block, False, False, 12)
 
@@ -64,7 +67,6 @@ class GamePanel(GenericPanel):
             game=self.game,
             game_actions=self.game_actions,
             main_window=self.main_window
-        )
 
         vbox.pack_start(play_controls_block, False, False, 12)
 
@@ -85,7 +87,6 @@ class GamePanel(GenericPanel):
             game_actions=self.game_actions,
             title="Game options",
             parent_widget=self
-        )
 
         vbox.pack_start(game_options_block, False, False, 12)
 
@@ -108,7 +109,6 @@ class GamePanel(GenericPanel):
             visible=True,
             game_actions=self.game_actions,
             title="Other options"
-        )
 
         vbox.pack_start(other_actions_block, True, True, 12)
 

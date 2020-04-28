@@ -3,6 +3,9 @@ from gi.repository import Gtk
 
 from lutris.gui.widgets.sidebar_controls.listbox_runners import SidebarListBoxRunners
 from lutris.gui.widgets.sidebar_controls.listbox_platforms import SidebarListBoxPlatforms
+# Lutris Modules
+from lutris import pga, platforms, runners
+from lutris.util import datapath
 
 TYPE = 0
 SLUG = 1
@@ -13,6 +16,7 @@ GAMECOUNT = 4
 
 class SidebarContainer(Gtk.VBox):
     __gtype_name__ = "LutrisSidebarContainer"
+        self.runner = None
 
     lutris_window = None
 
