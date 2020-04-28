@@ -58,6 +58,7 @@ class GameActions:
     def get_play_control_actions(self):
         """Return a list of play control related actions and their callbacks"""
         return [
+<<<<<<< HEAD
             (
                 "show_game_details", "Show game details",
                 self.on_show_game_details
@@ -110,20 +111,37 @@ class GameActions:
             ),
             (
                 "desktop-shortcut", "Create desktop shortcut",
+=======
+            ("play", "Play", self.on_game_run),
+            ("stop", "Stop", self.on_stop),
+            ("show_logs", "Show logs", self.on_show_logs),
+            ("install", "Install", self.on_install_clicked),
+            ("add", "Add installed game", self.on_add_manually),
+            ("configure", "Configure", self.on_edit_game_configuration),
+            ("execute-script", "Execute script", self.on_execute_script_clicked),
+            ("browse", "Browse files", self.on_browse_files),
+            (
+                "desktop-shortcut",
+                "Create desktop shortcut",
+>>>>>>> upstream/master
                 self.on_create_desktop_shortcut,
             ),
             (
-                "rm-desktop-shortcut", "Delete desktop shortcut",
+                "rm-desktop-shortcut",
+                "Delete desktop shortcut",
                 self.on_remove_desktop_shortcut,
             ),
             (
-                "menu-shortcut", "Create application menu shortcut",
+                "menu-shortcut",
+                "Create application menu shortcut",
                 self.on_create_menu_shortcut,
             ),
             (
-                "rm-menu-shortcut", "Delete application menu shortcut",
+                "rm-menu-shortcut",
+                "Delete application menu shortcut",
                 self.on_remove_menu_shortcut,
             ),
+<<<<<<< HEAD
             (
                 "install_more", "Install another version",
                 self.on_install_clicked
@@ -149,6 +167,13 @@ class GameActions:
                 "remove", "Remove",
                 self.on_remove_game
             )
+=======
+            ("install_more", "Install another version", self.on_install_clicked),
+            ("remove", "Remove", self.on_remove_game),
+            ("view", "View on Lutris.net", self.on_view_game),
+            ("hide", "Hide game from library", self.on_hide_game),
+            ("unhide", "Unhide game from library", self.on_unhide_game),
+>>>>>>> upstream/master
         ]
 
     def on_hide_game(self, _widget):
@@ -189,6 +214,7 @@ class GameActions:
 
     def get_displayed_entries_play_controls(self):
         return {
+<<<<<<< HEAD
             "show_game_details": self.game.is_installed and not self.window.game_details_view_visible,
             "hide_game_details": self.game.is_installed and self.window.game_details_view_visible,
             "install": not self.game.is_installed,
@@ -231,6 +257,42 @@ class GameActions:
             "view": True,
             "hide": not GameActions.is_game_hidden(self.game),
             "unhide": GameActions.is_game_hidden(self.game)
+=======
+            "add":
+            not self.game.is_installed and not self.game.is_search_result,
+            "install":
+            not self.game.is_installed,
+            "play":
+            self.game.is_installed and not self.is_game_running,
+            "stop":
+            self.is_game_running,
+            "show_logs":
+            self.game.is_installed,
+            "configure":
+            bool(self.game.is_installed),
+            "install_more":
+            self.game.is_installed and not self.game.is_search_result,
+            "execute-script":
+            bool(self.game.is_installed and self.game.runner.system_config.get("manual_command")),
+            "desktop-shortcut":
+            (self.game.is_installed and not xdgshortcuts.desktop_launcher_exists(self.game.slug, self.game.id)),
+            "menu-shortcut":
+            (self.game.is_installed and not xdgshortcuts.menu_launcher_exists(self.game.slug, self.game.id)),
+            "rm-desktop-shortcut":
+            bool(self.game.is_installed and xdgshortcuts.desktop_launcher_exists(self.game.slug, self.game.id)),
+            "rm-menu-shortcut":
+            bool(self.game.is_installed and xdgshortcuts.menu_launcher_exists(self.game.slug, self.game.id)),
+            "browse":
+            self.game.is_installed and self.game.runner_name != "browser",
+            "remove":
+            not self.game.is_search_result,
+            "view":
+            True,
+            "hide":
+            not GameActions.is_game_hidden(self.game),
+            "unhide":
+            GameActions.is_game_hidden(self.game)
+>>>>>>> upstream/master
         }
 
     def get_displayed_entries_other_actions(self):

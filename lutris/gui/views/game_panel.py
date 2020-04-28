@@ -57,6 +57,7 @@ class GamePanel(GenericPanel):
             spacing=0,
             visible=True,
             game=self.game
+        )
 
         vbox.pack_start(game_labels_block, False, False, 12)
 
@@ -67,6 +68,7 @@ class GamePanel(GenericPanel):
             game=self.game,
             game_actions=self.game_actions,
             main_window=self.main_window
+        )
 
         vbox.pack_start(play_controls_block, False, False, 12)
 
@@ -87,6 +89,7 @@ class GamePanel(GenericPanel):
             game_actions=self.game_actions,
             title="Game options",
             parent_widget=self
+        )
 
         vbox.pack_start(game_options_block, False, False, 12)
 
@@ -109,6 +112,7 @@ class GamePanel(GenericPanel):
             visible=True,
             game_actions=self.game_actions,
             title="Other options"
+        )
 
         vbox.pack_start(other_actions_block, True, True, 12)
 

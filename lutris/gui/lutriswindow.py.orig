@@ -14,6 +14,8 @@ from lutris.game import Game
 from lutris.game_actions import GameActions
 from lutris.gui import dialogs
 from lutris.gui.widgets.sidebar import SidebarContainer
+from lutris.gui.widgets.services import SyncServiceWindow
+from lutris.gui.dialogs.runners import RunnersDialog
 from lutris.gui.config.add_game import AddGameDialog
 from lutris.gui.config.system import SystemConfigDialog
 from lutris.gui.dialogs.runners import RunnersDialog
@@ -23,8 +25,10 @@ from lutris.gui.views.grid import GameGridView
 from lutris.gui.views.list import GameListView
 from lutris.gui.views.menu import ContextualMenu
 from lutris.gui.views.store import GameStore
-from lutris.gui.widgets.services import SyncServiceWindow
+from lutris.gui.views.game_panel import GamePanel, GenericPanel
 from lutris.gui.views.game_details import GameDetailsView
+from lutris.gui.widgets.services import SyncServiceWindow
+from lutris.gui.widgets.sidebar import SidebarListBox
 from lutris.gui.widgets.utils import IMAGE_SIZES, open_uri
 from lutris.runtime import RuntimeUpdater
 from lutris.services import get_services_synced_at_startup, steam
@@ -114,35 +118,30 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
         GObject.add_emission_hook(Game, "game-updated", self.on_game_updated)
         GObject.add_emission_hook(Game, "game-removed", self.on_game_updated)
         GObject.add_emission_hook(Game, "game-started", self.on_game_started)
-        GObject.add_emission_hook
-        (
-            GenericPanel,
-            "running-game-selected",
-            self.game_selection_changed
-        )
-        GObject.add_emission_hook
-        (
+
+        GObject.add_emission_hook(
             Game,
             "game-installed",
             self.on_game_installed
         )
-        GObject.add_emission_hook
-        (
+        GObject.add_emission_hook(
             GenericPanel,
             "running-game-selected-from-generic-panel",
             self.game_selection_changed
         )
-        GObject.add_emission_hook
-        (
+        GObject.add_emission_hook(
             GenericPanel,
             "show-installed-only-changed-from-generic-panel", self.on_show_installed_state_changed_from_generic_panel
         )
-        GObject.add_emission_hook
-        (
+        GObject.add_emission_hook(
             GenericPanel,
             "show-hidden-games-changed-from-generic-panel",
             self.hidden_state_change_from_generic_panel
         )
+
+        GObject.add_emission_hook(Game, "game-installed", self.on_game_installed)
+        GObject.add_emission_hook(GenericPanel, "running-game-selected", self.game_selection_changed)
+
         self.connect("delete-event", self.on_window_delete)
 
         self._game_details_view_visible = False
@@ -231,9 +230,7 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
 
         actions = {
             "browse-games": Action(lambda *x: open_uri("https://lutris.net/games/")),
-            "register-account": Action(
-                lambda *x: open_uri("https://lutris.net/user/register/")
-            ),
+            "register-account": Action(lambda *x: open_uri("https://lutris.net/user/register/")),
             "disconnect": Action(self.on_disconnect),
             "connect": Action(self.on_connect),
             "synchronize": Action(lambda *x: self.sync_library()),
@@ -244,6 +241,8 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
             "about": Action(self.on_about_clicked),
             "show-installed-only": Action(
                 self.on_show_installed_state_changed,
+            "show-installed-only": Action(
+                self.on_show_installed_state_change,
                 type="b",
                 default=self.filter_installed,
                 accel="<Primary>h",
@@ -254,23 +253,15 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
                 default=self.show_installed_first,
             ),
             "toggle-viewtype": Action(self.on_toggle_viewtype),
-            "icon-type": Action(
-                self.on_icontype_state_change, type="s", default=self.icon_type
-            ),
-            "view-sorting": Action(
-                self.on_view_sorting_state_change, type="s", default=self.view_sorting
-            ),
+            "icon-type": Action(self.on_icontype_state_change, type="s", default=self.icon_type),
+            "view-sorting": Action(self.on_view_sorting_state_change, type="s", default=self.view_sorting),
             "view-sorting-ascending": Action(
                 self.on_view_sorting_direction_change,
                 type="b",
                 default=self.view_sorting_ascending,
             ),
-            "use-dark-theme": Action(
-                self.on_dark_theme_state_change, type="b", default=self.use_dark_theme
-            ),
-            "show-tray-icon": Action(
-                self.on_tray_icon_toggle, type="b", default=self.show_tray_icon
-            ),
+            "use-dark-theme": Action(self.on_dark_theme_state_change, type="b", default=self.use_dark_theme),
+            "show-tray-icon": Action(self.on_tray_icon_toggle, type="b", default=self.show_tray_icon),
             "show-left-side-panel": Action(
                 self.on_left_side_panel_state_change,
                 type="b",
@@ -318,6 +309,7 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
     def do_hidden_state_change(self, value):
         ignores = pga.get_hidden_ids()
         settings.write_setting("show_hidden_games", str(self.show_hidden_games).lower(), section="lutris")
+
         # If we have to show the hidden games now, we need to add them back to
         # the view. If we need to hide them, we just remove them from the view
         if value:
@@ -904,6 +896,11 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
             self.view.set_selected_game(game.id)
 
             self.game_panel.connect("panel-closed", self.on_panel_closed)
+
+            self.view.contextual_menu.connect(
+                "shortcut-edited", self.game_panel.on_shortcut_edited
+            )
+
             self.view.contextual_menu.connect("shortcut-edited", self.game_panel.on_shortcut_edited)
 
         self.game_scrolled.add(self.game_panel)

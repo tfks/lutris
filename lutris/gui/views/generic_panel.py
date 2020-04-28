@@ -1,17 +1,14 @@
 """Side panel when no game is selected"""
-from gi.repository import Gtk, Gdk, Gio, Pango, GObject
+from gi.repository import Gtk, Gdk, GObject, GLib
 # Third Party Libraries
-from gi.repository import Gdk, Gio, GObject, Gtk, Pango
 
 # Lutris Modules
 from lutris.game import Game
-from lutris.util import system
 from lutris.gui.views.generic_panel_boxes.header_block import HeaderBlock
 from lutris.gui.views.generic_panel_boxes.links_block import LinksBlock
 from lutris.gui.views.generic_panel_boxes.running_games_block import RunningGamesBlock
 from lutris.gui.views.generic_panel_boxes.lutris_specific_action_block import LutrisSpecificBlock
-from lutris.util.log import logger
-from lutris.gui.config.system import SystemConfigDialog
+from lutris.gui.widgets.utils import get_pixbuf_for_panel
 
 LINKS = {
     "floss":
@@ -19,15 +16,11 @@ LINKS = {
     "f2p": (
         "https://lutris.net/games/?q=&all-free=on&free-filter=on&freetoplay-filter=on"
         "&pwyw-filter=on&sort-by-popularity=on"
-    )
-    "donate":
-    "https://lutris.net/donate",
-    "forums":
-    "https://forums.lutris.net/",
-    "discord":
-    "https://discord.gg/Pnt5CuY",
-    "irc":
-    "irc://irc.freenode.org:6667/lutris",
+    ),
+    "donate": "https://lutris.net/donate",
+    "forums": "https://forums.lutris.net/",
+    "discord": "https://discord.gg/Pnt5CuY",
+    "irc": "irc://irc.freenode.org:6667/lutris",
 }
 
 
@@ -36,10 +29,12 @@ class GenericPanel(Gtk.Box):
     """Side panel displayed when no game is selected"""
 
     __gtype_name__ = "LutrisPanel"
-    __gsignals__ = {"running-game-selected": (GObject.SIGNAL_RUN_FIRST, None, (Game, ))}
+    __gsignals__ = {
+        "running-game-selected": (GObject.SIGNAL_RUN_FIRST, None, (Game, )),
         "running-game-selected-from-generic-panel": (GObject.SIGNAL_RUN_FIRST, None, (Game, )),
         "show-installed-only-changed-from-generic-panel": (GObject.SIGNAL_RUN_FIRST, None, (bool, )),
         "show-hidden-games-changed-from-generic-panel": (GObject.SIGNAL_RUN_FIRST, None, (bool, ))
+    }
 
     def __init__(self, game_store, actions, application=None):
         super().__init__(visible=True)
@@ -96,6 +91,7 @@ class GenericPanel(Gtk.Box):
             visible=True,
             title="Playing",
             parent_widget=self
+        )
 
         vbox.pack_start(running_games_block, True, True, 6)
 
@@ -107,6 +103,8 @@ class GenericPanel(Gtk.Box):
             game_store=self.game_store,
             actions=self.actions,
             parent_widget=self
+        )
+
         vbox.pack_end(self.lutris_specific_action_block, False, False, 6)
 
         self.pack_start(vbox, True, True, 6)

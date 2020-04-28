@@ -16,12 +16,12 @@ GAMECOUNT = 4
 
 class SidebarContainer(Gtk.VBox):
     __gtype_name__ = "LutrisSidebarContainer"
-        self.runner = None
 
     lutris_window = None
 
     def __init__(self, spacing, visible, lutris_window):
         super().__init__()
+        self.runner = None
         self.set_spacing(spacing)
         self.set_visible(visible)
         self.lutris_window = lutris_window
