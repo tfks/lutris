@@ -29,7 +29,8 @@ class GameDetailsView(Gtk.VBox):
         bg_height = 1080
 
         bg_path = convert_to_background_generic(
-            "/home/tfk/.local/share/lutris/covers/star-trek-starfleet-command-iii.jpg", (bg_width, bg_height),
+            "/home/tfk/.local/share/lutris/covers/star-trek-starfleet-command-iii.jpg",
+            (bg_width, bg_height),
             True
         )
 

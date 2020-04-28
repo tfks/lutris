@@ -176,7 +176,10 @@ class GameStore(GObject.Object):
         """Add games to the store"""
         self.media_loaded = False
         if games:
-            AsyncCall(self.get_missing_media, None, [game["slug"] for game in games])
+            AsyncCall(self.get_missing_media,
+                      None,
+                      [game["slug"] for game in games]
+            )
         for game in list(games):
             GLib.idle_add(self.add_game, game)
 
@@ -381,7 +384,11 @@ class GameStore(GObject.Object):
             return
         for media_type in ("banner", "icon"):
             self.download_icons([
-                (slug, self.medias[media_type][slug], get_icon_path(slug, media_type))
+                (
+                    slug,
+                    self.medias[media_type][slug],
+                    get_icon_path(slug, media_type)
+                )
                 for slug in self.medias[media_type]
             ], media_type)
 
