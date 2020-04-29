@@ -105,6 +105,6 @@ def get_supported_systems(xml_path, force=False):
     return systems
 
 
-def get_games(xml_path):
+def mame_get_games(xml_path):
     """Return a list of all games"""
     return {machine.attrib["name"]: get_machine_info(machine) for machine in iter_machines(xml_path, is_game)}

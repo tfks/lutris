@@ -310,6 +310,7 @@ def get_games_where(**conditions):
         # FIXME: Inspect and document why we should return
         # an empty list when no condition is present.
         return []
+    logger.info("SQL: %s" % query)
     return sql.db_query(PGA_DB, query, tuple(condition_values))
 
 
