@@ -73,6 +73,7 @@ class InstallerWindow(BaseApplicationWindow):  # pylint: disable=too-many-public
         action_buttons_alignment.add(self.action_buttons)
         self.vbox.pack_start(action_buttons_alignment, False, True, 0)
 
+        self.manual_button = self.add_button("Configure m_anually", self.on_manual_clicked)
         self.cancel_button = self.add_button(
             "C_ancel", self.cancel_installation, tooltip="Abort and revert the installation"
         )
@@ -137,30 +138,37 @@ class InstallerWindow(BaseApplicationWindow):  # pylint: disable=too-many-public
         """Open dialog for 'no script available' situation."""
         dlg = NoInstallerDialog(self)
         if dlg.result == dlg.MANUAL_CONF:
-            game_data = pga.get_game_by_field(self.game_slug, "slug")
-
-            if game_data and "slug" in game_data:
-                # Game data already exist locally.
-                game = Game(game_data["id"])
-            else:
-                # Try to load game data from remote.
-                games = api.get_api_games([self.game_slug])
-
-                if games and len(games) >= 1:
-                    remote_game = games[0]
-                    game_data = {
-                        "name": remote_game["name"],
-                        "slug": remote_game["slug"],
-                        "year": remote_game["year"],
-                        "updated": remote_game["updated"],
-                        "steamid": remote_game["steamid"],
-                    }
-                    game = Game(pga.add_game(**game_data))
-                else:
-                    game = None
-            AddGameDialog(self.parent, game=game)
+            self.manually_configure_game()
         elif dlg.result == dlg.NEW_INSTALLER:
             webbrowser.open(settings.GAME_URL % self.game_slug)
+
+    def manually_configure_game(self):
+        game_data = pga.get_game_by_field(self.game_slug, "slug")
+
+        if game_data and "slug" in game_data:
+            # Game data already exist locally.
+            game = Game(game_data["id"])
+        else:
+            # Try to load game data from remote.
+            games = api.get_api_games([self.game_slug])
+
+            if games and len(games) >= 1:
+                remote_game = games[0]
+                game_data = {
+                    "name": remote_game["name"],
+                    "slug": remote_game["slug"],
+                    "year": remote_game["year"],
+                    "updated": remote_game["updated"],
+                    "steamid": remote_game["steamid"],
+                }
+                game = Game(pga.add_game(**game_data))
+            else:
+                game = None
+        AddGameDialog(self.parent, game=game)
+
+    def on_manual_clicked(self, widget):
+        self.destroy()
+        self.manually_configure_game()
 
     def validate_scripts(self):
         """Auto-fixes some script aspects and checks for mandatory fields"""
@@ -227,6 +235,7 @@ class InstallerWindow(BaseApplicationWindow):  # pylint: disable=too-many-public
         self.source_button.show()
         self.install_button.grab_focus()
         self.install_button.show()
+        self.manual_button.hide()
 
     def on_installer_selected(self, widget, installer_slug):
         self.clean_widgets()
