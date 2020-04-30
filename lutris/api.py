@@ -138,7 +138,7 @@ def get_game_api_page(game_ids, page="1", query_type="games"):
 
 
 def get_api_games(game_slugs=None, page="1", query_type="games", inject_aliases=False):
-    return []
+    # return []
 
     """Return all games from the Lutris API matching the given game slugs"""
     response_data = get_game_api_page(game_slugs, page=page, query_type=query_type)
