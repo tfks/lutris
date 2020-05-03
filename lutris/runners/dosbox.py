@@ -6,6 +6,7 @@ import shlex
 from lutris.runners.commands.dosbox import dosexec, makeconfig  # NOQA pylint: disable=unused-import
 from lutris.runners.runner import Runner
 from lutris.util import system
+from lutris.util.log import logger
 
 
 class dosbox(Runner):
@@ -139,9 +140,17 @@ class dosbox(Runner):
 
     def play(self):
         main_file = self.main_file
+
         if not system.path_exists(main_file):
+            logger.info("DosBox Play: Main file does not exist.")
             return {"error": "FILE_NOT_FOUND", "file": main_file}
-        args = shlex.split(self.game_config.get("args")) or []
+
+        args_str = self.game_config.get("args")
+
+        if args_str is not None and args_str != "":
+            args = shlex.split(args_str) or []
+        else:
+            args = []
 
         command = [self.get_executable()]
 
@@ -150,6 +159,7 @@ class dosbox(Runner):
             command.append(main_file)
         else:
             command.append(main_file)
+
         # Options
         if self.game_config.get("config_file"):
             command.append("-conf")

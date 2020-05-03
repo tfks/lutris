@@ -189,8 +189,8 @@ class GameActions:
 
     def get_displayed_entries_play_controls(self):
         return {
-            "show_game_details": self.game.is_installed and not self.window.game_details_view_visible,
-            "hide_game_details": self.game.is_installed and self.window.game_details_view_visible,
+            "show_game_details": self.game.is_installed and (self.window is not None and not self.window.game_details_view_visible),
+            "hide_game_details": self.game.is_installed and (self.window is not None and self.window.game_details_view_visible),
             "install": not self.game.is_installed,
             "play": self.game.is_installed and not self.is_game_running,
             "stop": self.is_game_running
