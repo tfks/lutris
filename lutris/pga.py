@@ -524,3 +524,4 @@ def set_hidden_ids(games):
     gameids = [str(game_id) for game_id in games]
     gameids = CommonUtils.remove_duplicates_from_list(gameids)
     ignores_str = [str(game_id) for game_id in gameids]
+    settings.write_setting("library_ignores", ','.join(ignores_str), section="lutris")
