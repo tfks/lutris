@@ -15,7 +15,11 @@ try:
     from PIL import Image
 except ImportError:
     Image = None
-from lutris.util.imaging.image_manipulation import resize_image_from_path
+
+from lutris.util.imaging.image_manipulation import (
+    resize_image_from_path,
+    resize_image_from_url
+)
 
 BANNER_SIZE = (184, 69)
 BANNER_SMALL_SIZE = (120, 45)
@@ -175,14 +179,37 @@ def convert_to_background(background_path, target_size=(320, 1080)):
 
     return background
 
-def convert_to_background_generic(background_path, target_size, keep_aspect_ratio):
+
+def convert_to_background_generic(
+    background_path,
+    target_size,
+    keep_aspect_ratio
+):
     target_width, target_height = target_size
 
-    image = resize_image_from_path(background_path, target_size, keep_aspect_ratio)
+    image = None
+
+    if background_path.startswith("http://") or background_path.startswith("https://"):
+        image = resize_image_from_url(
+            background_path,
+            target_size,
+            keep_aspect_ratio
+        )
+    else:
+        image = resize_image_from_path(
+            background_path,
+            target_size,
+            keep_aspect_ratio
+        )
 
     target_height_crop = 1000
 
+    logger.info("Image width: %s" % image.width)
+
     image = image.crop((0, 0, target_width, target_height_crop))
+
+    if image is None:
+        return ""
 
     # Resize canvas, add transparency to bottom
     image_bg = Image.new("RGBA", target_size, (0, 0, 0, 0))
@@ -202,11 +229,21 @@ def convert_to_background_generic(background_path, target_size, keep_aspect_rati
 
     return dest_path
 
+
 def image2pixbuf(image):
     """Converts a PIL Image to a GDK Pixbuf"""
     image_array = array.array('B', image.tobytes())
     width, height = image.size
-    return GdkPixbuf.Pixbuf.new_from_data(image_array, GdkPixbuf.Colorspace.RGB, True, 8, width, height, width * 4)
+
+    return GdkPixbuf.Pixbuf.new_from_data(
+        image_array,
+        GdkPixbuf.Colorspace.RGB,
+        True,
+        8,
+        width,
+        height,
+        width * 4
+    )
 
 
 def get_pixbuf_for_panel(game_slug):
@@ -232,22 +269,28 @@ def get_builder_from_file(glade_file):
     builder.add_from_file(ui_filename)
     return builder
 
+
 def get_default_button(text, icon_identifier):
     button = None
     if icon_identifier != "":
-        button = Gtk.Button.new_from_icon_name(icon_identifier, Gtk.IconSize.MENU)
+        button = Gtk.Button.new_from_icon_name(
+            icon_identifier,
+            Gtk.IconSize.MENU
+        )
     else:
         button = Gtk.Button(text, visible=True)
     return button
+
 
 def get_default_link_button(text):
     """Return a transparent text button for the side panels"""
     button = Gtk.Button(text, visible=True)
     button.props.relief = Gtk.ReliefStyle.NONE
-    #button.get_children()[0].set_alignment(0, 0.5)
+    # button.get_children()[0].set_alignment(0, 0.5)
     button.get_style_context().add_class("panel-button")
     button.set_size_request(-1, 24)
     return button
+
 
 def get_link_button(text):
     """Return a transparent text button for the side panels"""

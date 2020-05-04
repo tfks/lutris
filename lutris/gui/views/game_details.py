@@ -3,6 +3,7 @@ from lutris.gui.widgets.utils import get_pixbuf_for_game
 from lutris.gui.widgets.utils import convert_to_background_generic
 from lutris.gui.views.game_detail_controls.related_apps import RelatedApplications
 from lutris.gui.views.game_detail_controls.other_versions import OtherVersions
+from lutris.util.log import logger
 
 
 class GameDetailsView(Gtk.VBox):
@@ -29,12 +30,13 @@ class GameDetailsView(Gtk.VBox):
         bg_height = 1080
 
         bg_path = convert_to_background_generic(
-            "/home/tfk/.local/share/lutris/covers/star-trek-starfleet-command-iii.jpg",
+            "https://steamcdn-a.akamaihd.net/steam/apps/812140/header.jpg",
             (bg_width, bg_height),
             True
         )
 
         if not bg_path:
+            logger.info("GameDetails: No image")
             return
 
         style = Gtk.StyleContext()
