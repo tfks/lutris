@@ -9,6 +9,7 @@ from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
 # Lutris Modules
 from lutris import settings
 from lutris.util import datapath, resources, system
+from lutris import constants
 from lutris.util.log import logger
 
 try:
@@ -217,7 +218,12 @@ def convert_to_background_generic(
 
     # Apply a tint to the base image
     tint = Image.new('RGBA', (target_width, target_height), (0, 0, 0, 255))
-    image_bg = Image.blend(image_bg, tint, 0.6)
+
+    image_bg = Image.blend(
+        image_bg,
+        tint,
+        constants.GameDetailsView.BACKGROUND_OPACITY
+    )
 
     background = Image.new("RGBA", target_size, (0, 0, 0, 0))
     mask = Image.open(os.path.join(datapath.get(), "media/mask.png"))

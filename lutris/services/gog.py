@@ -15,9 +15,10 @@ from lutris.util import system
 from lutris.util.http import HTTPError, Request
 from lutris.util.log import logger
 from lutris.util.resources import download_media
+from lutris import constants
 
-NAME = "GOG"
-ICON = "gog"
+NAME = constants.Gog.NAME
+ICON = constants.Gog.ICON
 ONLINE = True
 
 
@@ -31,18 +32,18 @@ class GogService(OnlineService):
 
     """Service class for GOG"""
 
-    name = "GOG"
-    embed_url = "https://embed.gog.com"
-    api_url = "https://api.gog.com"
+    name = constants.Gog.NAME
+    embed_url = constants.Gog.EMBED_URL
+    api_url = constants.Gog.API_URL
 
-    client_id = "46899977096215655"
-    client_secret = "9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9"
-    redirect_uri = "https://embed.gog.com/on_login_success?origin=client"
+    client_id = constants.Gog.CLIENT_ID
+    client_secret = constants.Gog.CLIENT_SECRET
+    redirect_uri = constants.Gog.REDIRECT_URI
 
-    login_success_url = "https://www.gog.com/on_login_success"
-    cookies_path = os.path.join(settings.CACHE_DIR, ".gog.auth")
-    token_path = os.path.join(settings.CACHE_DIR, ".gog.token")
-    cache_path = os.path.join(settings.CACHE_DIR, "gog-library.json")
+    login_success_url = constants.Gog.LOGIN_SUCCESS_URL
+    cookies_path = os.path.join(settings.CACHE_DIR, constants.Gog.COOKIE_AUTH)
+    token_path = os.path.join(settings.CACHE_DIR, constants.Gog.COOKIE_TOKEN)
+    cache_path = os.path.join(settings.CACHE_DIR, constants.Gog.FILENAME_JSON_LIBRARY)
 
     @property
     def login_url(self):
@@ -249,13 +250,21 @@ class GOGGame(ServiceGame):
         return service_game
 
     @classmethod
-    def get_banner(cls, gog_game):
+    def get_banner_small(cls, gog_game):
+        return cls.get_banner(gog_game, "small")
+
+    @classmethod
+    def get_banner_large(cls, gog_game):
+        return cls.get_banner(gog_game, "large")
+
+    @classmethod
+    def get_banner(cls, gog_game, size_str="small"):
         """Return the path to the game banner.
         Downloads the banner if not present.
         """
         image_url = "https:%s_prof_game_100x60.jpg" % gog_game["image"]
         image_hash = gog_game["image"].split("/")[-1]
-        cache_dir = os.path.join(settings.CACHE_DIR, "gog/banners/small/")
+        cache_dir = os.path.join(settings.CACHE_DIR, "gog/banners/%s/" % size_str)
         if not system.path_exists(cache_dir):
             os.makedirs(cache_dir)
         cache_path = os.path.join(cache_dir, "%s.jpg" % image_hash)

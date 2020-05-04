@@ -4,6 +4,8 @@ from lutris.gui.widgets.utils import convert_to_background_generic
 from lutris.gui.views.game_detail_controls.related_apps import RelatedApplications
 from lutris.gui.views.game_detail_controls.other_versions import OtherVersions
 from lutris.util.log import logger
+from lutris.services.steam import SteamGame
+from lutris.services.gog import GOGGame
 
 
 class GameDetailsView(Gtk.VBox):
@@ -30,7 +32,8 @@ class GameDetailsView(Gtk.VBox):
         bg_height = 1080
 
         bg_path = convert_to_background_generic(
-            "https://steamcdn-a.akamaihd.net/steam/apps/812140/header.jpg",
+            # self.steam_api.get_game_header_image(812140),
+            self.get_background_url(),
             (bg_width, bg_height),
             True
         )
@@ -54,6 +57,15 @@ class GameDetailsView(Gtk.VBox):
             bg_provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
         )
+
+    def get_background_url(self):
+        logger.info("steamid=%s" % self.game.steamid)
+        if self.game.steamid != "":
+            return SteamGame.get_game_header_image(self.game)
+        # else if self.game is GOGGame:
+        # GOGGame.get_banner_large(self.game)
+        else:
+            return ""
 
     def place_content(self):
         box_header = Gtk.Box(spacing=6, visible=True)

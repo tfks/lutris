@@ -9,9 +9,10 @@ from lutris.config import LutrisConfig, make_game_config_id
 from lutris.services.service_game import ServiceGame
 from lutris.util.steam.appmanifest import AppManifest, get_appmanifests
 from lutris.util.steam.config import get_steamapps_paths
+from lutris import constants
 
-NAME = "Steam"
-ICON = "steam"
+NAME = constants.Steam.NAME
+ICON = constants.Steam.ICON
 ONLINE = False
 
 
@@ -19,12 +20,9 @@ class SteamGame(ServiceGame):
 
     """ServiceGame for Steam games"""
 
-    store = "steam"
-    installer_slug = "steam"
-    excluded_appids = [
-        "228980",  # Steamworks Common Redistributables
-        "1070560",  # Steam Linux Runtime
-    ]
+    store = constants.Steam.STORE
+    installer_slug = constants.Steam.SLUG
+    excluded_appids = constants.Steam.EXCLUDED_APPIDS
 
     @classmethod
     def new_from_steam_game(cls, appmanifest, game_id=None):
@@ -63,6 +61,10 @@ class SteamGame(ServiceGame):
         game_config = LutrisConfig(runner_slug=self.runner, game_config_id=self.config_id)
         game_config.raw_game_config.update({"appid": self.appid})
         game_config.save()
+
+    @classmethod
+    def get_game_header_image(cls, steam_game):
+        return constants.Steam.STEAM_API_HEADER_IMAGE_URL % steam_game.steamid
 
 
 class SteamSyncer:
