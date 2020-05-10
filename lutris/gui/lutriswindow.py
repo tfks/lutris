@@ -31,6 +31,7 @@ from lutris.services import get_services_synced_at_startup, steam
 from lutris.sync import sync_from_remote
 from lutris.util import datapath, http
 from lutris.util.jobs import AsyncCall
+from lutris.util.gtkutils import get_background_color
 from lutris.util.log import logger
 from lutris.vendor.gi_composites import GtkTemplate
 
@@ -408,6 +409,8 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
         return self._game_details_view_visible
 
     def get_store(self, games=None):
+        bg_color_selected = get_background_color(self, Gtk.StateFlags.SELECTED)
+
         """Return an instance of GameStore"""
         games = games or pga.get_games(show_installed_first=self.show_installed_first)
         game_store = GameStore(
@@ -418,6 +421,7 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
             self.view_sorting_ascending,
             self.show_hidden_games,
             self.show_installed_first,
+            bg_color_selected
         )
         game_store.connect("sorting-changed", self.on_game_store_sorting_changed)
         return game_store

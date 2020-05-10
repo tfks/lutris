@@ -101,6 +101,7 @@ class GameStore(GObject.Object):
         sort_ascending,
         show_hidden_games,
         show_installed_first=False,
+        bg_color_selected=""
     ):
         super(GameStore, self).__init__()
         self.games = games or pga.get_games(show_installed_first=show_installed_first)
@@ -114,6 +115,7 @@ class GameStore(GObject.Object):
         self.icon_type = icon_type
         self.filter_installed = filter_installed
         self.show_installed_first = show_installed_first
+        self.bg_color_selected = bg_color_selected
         self.filter_text = None
         self.filter_runner = None
         self.filter_platform = None
@@ -355,7 +357,7 @@ class GameStore(GObject.Object):
 
     def update_icon(self, game_slug):
         row = self.get_row_by_slug(game_slug)
-        row[COL_ICON] = get_pixbuf_for_game(game_slug, self.icon_type, True)
+        row[COL_ICON] = get_pixbuf_for_game(game_slug, self.icon_type, self.bg_color_selected, is_installed=True)
 
     def fetch_icon(self, slug):
         if not self.media_loaded:
@@ -452,6 +454,7 @@ class GameStore(GObject.Object):
             row[COL_ICON] = get_pixbuf_for_game(
                 row[COL_SLUG],
                 icon_type,
-                is_installed=row[COL_INSTALLED] if not self.search_mode else True,
+                self.bg_color_selected,
+                is_installed=row[COL_INSTALLED] if not self.search_mode else True
             )
         self.emit("icons-changed", icon_type)

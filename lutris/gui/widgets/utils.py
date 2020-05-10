@@ -13,9 +13,12 @@ from lutris import constants
 from lutris.util.log import logger
 
 try:
-    from PIL import Image
+    from PIL import Image, ImageDraw, ImageColor, ImageFont
 except ImportError:
     Image = None
+    ImageDraw = None
+    ImageColor = None
+    ImageFont = None
 
 from lutris.util.imaging.image_manipulation import (
     resize_image_from_path,
@@ -115,12 +118,25 @@ def get_overlay(overlay_path, size):
     return transparent_pixbuf
 
 
-def get_pixbuf_for_game(game_slug, icon_type, is_installed=True):
+def get_pixbuf_for_game(
+    game_slug,
+    icon_type,
+    fill_color=None,
+    is_installed=False
+):
     if icon_type.startswith("banner"):
-        default_icon_path = os.path.join(datapath.get(), "media/default_banner.png")
+        default_icon_path = os.path.join(
+            datapath.get(),
+            "media/default_banner.png"
+        )
+
         icon_path = resources.get_banner_path(game_slug)
     elif icon_type.startswith("icon"):
-        default_icon_path = os.path.join(datapath.get(), "media/default_icon.png")
+        default_icon_path = os.path.join(
+            datapath.get(),
+            "media/default_icon.png"
+        )
+
         icon_path = resources.get_icon_path(game_slug)
     else:
         logger.error("Invalid icon type '%s'", icon_type)
@@ -129,24 +145,73 @@ def get_pixbuf_for_game(game_slug, icon_type, is_installed=True):
     size = IMAGE_SIZES[icon_type]
 
     pixbuf = get_pixbuf(icon_path, size, fallback=default_icon_path)
+
     if not is_installed:
-        unavailable_game_overlay = os.path.join(datapath.get(), "media/unavailable.png")
-        transparent_pixbuf = get_overlay(unavailable_game_overlay, size).copy()
-        pixbuf.composite(
-            transparent_pixbuf,
-            0,
-            0,
-            size[0],
-            size[1],
-            0,
-            0,
-            1,
-            1,
-            GdkPixbuf.InterpType.NEAREST,
+        return process_pixbuf_for_game(
+            fill_color,
+            pixbuf,
+            size,
+            "media/unavailable.png",
             100,
+            is_installed=False
         )
-        return transparent_pixbuf
-    return pixbuf
+    else:
+        return process_pixbuf_for_game(
+            fill_color,
+            pixbuf,
+            size,
+            "media/available.png",
+            255,
+            is_installed=True
+        )
+
+
+def process_pixbuf_for_game(
+    fill_color,
+    pixbuf,
+    size,
+    overlay_path_relative,
+    opacity=100,
+    is_installed=False
+):
+    # logger.info("COLOR=%s", fill_color.)
+
+    game_overlay = os.path.join(
+        datapath.get(),
+        overlay_path_relative
+    )
+
+    transparent_pixbuf = get_overlay(game_overlay, size).copy()
+
+    if is_installed and fill_color is not None and 1 == 0:
+        tr_image = pixbuf2image(transparent_pixbuf)
+        draw = ImageDraw.Draw(tr_image)
+        fnt = ImageFont.load_default()
+        # clr = ImageColor.getrgb(fill_color)
+
+        draw.text(
+            (0, tr_image.height-25),
+            "INSTALLED",
+            font=fnt,
+            fill=fill_color
+        )
+
+        transparent_pixbuf = image2pixbuf(tr_image)
+
+    pixbuf.composite(
+        transparent_pixbuf,
+        0,
+        0,
+        size[0],
+        size[1],
+        0,
+        0,
+        1,
+        1,
+        GdkPixbuf.InterpType.NEAREST,
+        opacity,
+    )
+    return transparent_pixbuf
 
 
 def convert_to_background(background_path, target_size=(320, 1080)):
@@ -250,6 +315,19 @@ def image2pixbuf(image):
         height,
         width * 4
     )
+
+
+def pixbuf2image(pix):
+    """Convert gdkpixbuf to PIL image"""
+    data = pix.get_pixels()
+    w = pix.props.width
+    h = pix.props.height
+    stride = pix.props.rowstride
+    mode = "RGB"
+    if pix.props.has_alpha is True:
+        mode = "RGBA"
+    im = Image.frombytes(mode, (w, h), data, "raw", mode, stride)
+    return im
 
 
 def get_pixbuf_for_panel(game_slug):
