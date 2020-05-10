@@ -207,7 +207,7 @@ class GameStore(GObject.Object):
             logger.debug("Requesting missing icons from API for %s", ", ".join(missing_media_slugs))
 
         lutris_media = api.get_api_games(list(missing_media_slugs), inject_aliases=True)
-        lutris_media = None
+
         if not lutris_media:
             return
 

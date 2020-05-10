@@ -181,6 +181,8 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
             application=self.application
         )
 
+        self.make_generic_panel_event_connections()
+
         self.game_scrolled = Gtk.ScrolledWindow(visible=True)
         self.game_scrolled.set_size_request(320, -1)
         self.game_scrolled.get_style_context().add_class("game-scrolled")
