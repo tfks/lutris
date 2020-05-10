@@ -212,6 +212,24 @@ def process_pixbuf_for_game(
         opacity,
     )
     return transparent_pixbuf
+    """ else:
+        available_game_overlay = os.path.join(datapath.get(), "media/available.png")
+        transparent_pixbuf = get_overlay(available_game_overlay, size).copy()
+        pixbuf.composite(
+            transparent_pixbuf,
+            0,
+            0,
+            size[0],
+            size[1],
+            0,
+            0,
+            1,
+            1,
+            GdkPixbuf.InterpType.NEAREST,
+            255
+        )
+        return transparent_pixbuf """
+    return pixbuf
 
 
 def convert_to_background(background_path, target_size=(320, 1080)):
