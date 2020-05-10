@@ -101,7 +101,7 @@ class GameStore(GObject.Object):
         sort_ascending,
         show_hidden_games,
         show_installed_first=False,
-        bg_color_selected=""
+        bg_color_selected=None
     ):
         super(GameStore, self).__init__()
         self.games = games or pga.get_games(show_installed_first=show_installed_first)

@@ -1,6 +1,5 @@
 """Various utilities using the GObject framework"""
 # Standard Library
-import array
 import os
 
 # Third Party Libraries
@@ -122,7 +121,7 @@ def get_pixbuf_for_game(
     game_slug,
     icon_type,
     fill_color=None,
-    is_installed=False
+    is_installed=True
 ):
     if icon_type.startswith("banner"):
         default_icon_path = os.path.join(
@@ -146,57 +145,48 @@ def get_pixbuf_for_game(
 
     pixbuf = get_pixbuf(icon_path, size, fallback=default_icon_path)
 
-    if not is_installed:
-        return process_pixbuf_for_game(
-            fill_color,
-            pixbuf,
-            size,
-            "media/unavailable.png",
-            100,
-            is_installed=False
-        )
-    else:
-        return process_pixbuf_for_game(
-            fill_color,
-            pixbuf,
-            size,
-            "media/available.png",
-            255,
-            is_installed=True
-        )
+    if fill_color is None:
+        fill_color = "rgb(86, 87, 245)"
+
+    if icon_type.startswith("banner"):
+        if not is_installed:
+            fill_color = "gray"
+
+        tr_image = pixbuf2image(pixbuf)
+
+        draw = ImageDraw.Draw(tr_image)
+
+        shape = [(0, tr_image.height-2), (tr_image.width, tr_image.height)]
+
+        draw.rectangle(shape, fill=fill_color)
+
+        pixbuf = image2pixbuf(tr_image)
+
+        if not is_installed:
+            pixbuf_transparent = process_pixbuf_for_game(
+                pixbuf,
+                size,
+                "media/unavailable.png",
+                100
+            )
+
+            return pixbuf_transparent
+
+    return pixbuf
 
 
 def process_pixbuf_for_game(
-    fill_color,
     pixbuf,
     size,
     overlay_path_relative,
-    opacity=100,
-    is_installed=False
+    opacity
 ):
-    # logger.info("COLOR=%s", fill_color.)
-
     game_overlay = os.path.join(
         datapath.get(),
         overlay_path_relative
     )
 
     transparent_pixbuf = get_overlay(game_overlay, size).copy()
-
-    if is_installed and fill_color is not None and 1 == 0:
-        tr_image = pixbuf2image(transparent_pixbuf)
-        draw = ImageDraw.Draw(tr_image)
-        fnt = ImageFont.load_default()
-        # clr = ImageColor.getrgb(fill_color)
-
-        draw.text(
-            (0, tr_image.height-25),
-            "INSTALLED",
-            font=fnt,
-            fill=fill_color
-        )
-
-        transparent_pixbuf = image2pixbuf(tr_image)
 
     pixbuf.composite(
         transparent_pixbuf,
@@ -212,24 +202,6 @@ def process_pixbuf_for_game(
         opacity,
     )
     return transparent_pixbuf
-    """ else:
-        available_game_overlay = os.path.join(datapath.get(), "media/available.png")
-        transparent_pixbuf = get_overlay(available_game_overlay, size).copy()
-        pixbuf.composite(
-            transparent_pixbuf,
-            0,
-            0,
-            size[0],
-            size[1],
-            0,
-            0,
-            1,
-            1,
-            GdkPixbuf.InterpType.NEAREST,
-            255
-        )
-        return transparent_pixbuf """
-    return pixbuf
 
 
 def convert_to_background(background_path, target_size=(320, 1080)):
@@ -321,18 +293,19 @@ def convert_to_background_generic(
 
 def image2pixbuf(image):
     """Converts a PIL Image to a GDK Pixbuf"""
-    image_array = array.array('B', image.tobytes())
-    width, height = image.size
-
-    return GdkPixbuf.Pixbuf.new_from_data(
-        image_array,
+    glibbytes = GLib.Bytes.new(image.tobytes())
+    gdkpixbuf = GdkPixbuf.Pixbuf.new_from_data(
+        glibbytes.get_data(),
         GdkPixbuf.Colorspace.RGB,
-        True,
+        False,
         8,
-        width,
-        height,
-        width * 4
+        image.width,
+        image.height,
+        len(image.getbands())*image.width,
+        None,
+        None
     )
+    return gdkpixbuf
 
 
 def pixbuf2image(pix):
