@@ -324,7 +324,12 @@ class GameStore(GObject.Object):
         row[COL_ID] = game.id
         row[COL_SLUG] = game.slug
         row[COL_NAME] = game.name
-        row[COL_ICON] = game.get_pixbuf(self.icon_type)
+        row[COL_ICON] = get_pixbuf_for_game(
+            game.slug,
+            self.icon_type,
+            None, # Needs a color injected
+            game.installed
+        )
         row[COL_YEAR] = game.year
         row[COL_RUNNER] = game.runner
         row[COL_RUNNER_HUMAN_NAME] = game.runner_text
@@ -422,7 +427,12 @@ class GameStore(GObject.Object):
                 game.id,
                 game.slug,
                 game.name,
-                game.get_pixbuf(self.icon_type),
+                get_pixbuf_for_game(
+                    game.slug,
+                    self.icon_type,
+                    None, # Needs a color injected
+                    game.installed
+                ),
                 game.year,
                 game.runner,
                 game.runner_text,
