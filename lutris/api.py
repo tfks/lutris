@@ -109,10 +109,10 @@ def get_game_api_page(game_ids, page="1", query_type="games"):
         query_type (str): Type of the IDs in game_ids, by default 'games' queries
                           games by their Lutris slug. 'gogid' can also be used.
     """
-    url = settings.SITE_URL + "/api/games?format=json"
+    url = settings.SITE_URL + "/api/games"
 
     if int(page) > 1:
-        url += "&page={}".format(page)
+        url += "?page={}".format(page)
 
     response = http.Request(url, headers={"Content-Type": "application/json"})
     if game_ids:

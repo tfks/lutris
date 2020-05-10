@@ -146,6 +146,23 @@ def get_pixbuf_for_game(game_slug, icon_type, is_installed=True):
             100,
         )
         return transparent_pixbuf
+    """ else:
+        available_game_overlay = os.path.join(datapath.get(), "media/available.png")
+        transparent_pixbuf = get_overlay(available_game_overlay, size).copy()
+        pixbuf.composite(
+            transparent_pixbuf,
+            0,
+            0,
+            size[0],
+            size[1],
+            0,
+            0,
+            1,
+            1,
+            GdkPixbuf.InterpType.NEAREST,
+            255
+        )
+        return transparent_pixbuf """
     return pixbuf
 
 
