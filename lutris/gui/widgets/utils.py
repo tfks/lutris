@@ -145,7 +145,7 @@ def get_pixbuf_for_game(
 
     pixbuf = get_pixbuf(icon_path, size, fallback=default_icon_path)
 
-    if fill_color is None:
+    if fill_color is None or fill_color == "":
         fill_color = "rgb(86, 87, 245)"
 
     if icon_type.startswith("banner"):

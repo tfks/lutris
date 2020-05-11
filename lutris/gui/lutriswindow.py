@@ -96,6 +96,8 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
         self.selected_platform = None
         self.icon_type = None
 
+        self.bg_color_selected = get_background_color(self, Gtk.StateFlags.SELECTED)
+
         # Load settings
         self.window_size = (width, height)
         self.maximized = settings.read_setting("maximized") == "True"
@@ -411,7 +413,10 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
         return self._game_details_view_visible
 
     def get_store(self, games=None):
-        bg_color_selected = get_background_color(self, Gtk.StateFlags.SELECTED)
+
+        # self.bg_color_selected = get_background_color(self, Gtk.StateFlags.SELECTED)
+
+        logger.debug("BG Color: %s" % self.bg_color_selected)
 
         """Return an instance of GameStore"""
         games = games or pga.get_games(show_installed_first=self.show_installed_first)
@@ -423,7 +428,7 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
             self.view_sorting_ascending,
             self.show_hidden_games,
             self.show_installed_first,
-            bg_color_selected
+            self.bg_color_selected
         )
         game_store.connect("sorting-changed", self.on_game_store_sorting_changed)
         return game_store
