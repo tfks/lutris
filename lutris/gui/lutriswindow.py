@@ -350,6 +350,10 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
                 self.game_panel.set_show_hidden_games_controls_active(value)
 
     @property
+    def current_window_size(self):
+        return self.window_size
+
+    @property
     def current_view_type(self):
         """Returns which kind of view is currently presented (grid or list)"""
         return "grid" if isinstance(self.view, GameGridView) else "list"
@@ -594,7 +598,8 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
             spacing=0,
             visible=True,
             store=self.game_store,
-            game_actions=self.game_actions
+            game_actions=self.game_actions,
+            main_window=self
         )
 
         self.game_details_view.set_visible(True)

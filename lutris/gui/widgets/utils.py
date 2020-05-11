@@ -247,7 +247,8 @@ def convert_to_background(background_path, target_size=(320, 1080)):
 def convert_to_background_generic(
     background_path,
     target_size,
-    keep_aspect_ratio
+    keep_aspect_ratio,
+    use_mask
 ):
     target_width, target_height = target_size
 
@@ -266,32 +267,37 @@ def convert_to_background_generic(
             keep_aspect_ratio
         )
 
-    target_height_crop = 1000
+    background = None
 
-    logger.info("Image width: %s" % image.width)
+    if use_mask:
+        target_height_crop = 1000
 
-    image = image.crop((0, 0, target_width, target_height_crop))
+        logger.debug("Image width: %s" % image.width)
 
-    if image is None:
-        return ""
+        image = image.crop((0, 0, target_width, target_height_crop))
 
-    # Resize canvas, add transparency to bottom
-    image_bg = Image.new("RGBA", target_size, (0, 0, 0, 0))
-    image_bg.paste(image, (0, 0, target_width, image.height))
+        if image is None:
+            return None
 
-    # Apply a tint to the base image
-    tint = Image.new('RGBA', (target_width, target_height), (0, 0, 0, 255))
+        # Resize canvas, add transparency to bottom
+        image_bg = Image.new("RGBA", target_size, (0, 0, 0, 0))
+        image_bg.paste(image, (0, 0, target_width, image.height))
 
-    image_bg = Image.blend(
-        image_bg,
-        tint,
-        constants.GameDetailsView.BACKGROUND_OPACITY
-    )
+        # Apply a tint to the base image
+        tint = Image.new('RGBA', (target_width, target_height), (0, 0, 0, 255))
 
-    background = Image.new("RGBA", target_size, (0, 0, 0, 0))
-    mask = Image.open(os.path.join(datapath.get(), "media/mask.png"))
-    mask = mask.resize(target_size, resample=Image.BICUBIC)
-    background.paste(image_bg, mask=mask)
+        image_bg = Image.blend(
+            image_bg,
+            tint,
+            constants.GameDetailsView.BACKGROUND_OPACITY
+        )
+
+        background = Image.new("RGBA", target_size, (0, 0, 0, 0))
+        mask = Image.open(os.path.join(datapath.get(), "media/mask.png"))
+        mask = mask.resize(target_size, resample=Image.BICUBIC)
+        background.paste(image_bg, mask=mask)
+    else:
+        background = image
 
     dest_path = os.path.join(settings.CACHE_DIR, "customized_panel_bg.png")
     background.save(dest_path)
