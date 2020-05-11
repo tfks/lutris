@@ -1,6 +1,7 @@
 """Various utilities using the GObject framework"""
 # Standard Library
 import os
+import math
 
 # Third Party Libraries
 from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
@@ -145,8 +146,21 @@ def get_pixbuf_for_game(
 
     pixbuf = get_pixbuf(icon_path, size, fallback=default_icon_path)
 
-    if fill_color is None or fill_color == "":
+    if fill_color is None or (type(fill_color) == str and fill_color == ""):
         fill_color = "rgb(86, 87, 245)"
+
+    if is_installed:
+        logger.debug("fill color 1: %s" % fill_color)
+
+    if type(fill_color) is Gdk.RGBA:
+        fill_color = "rgb({0}, {1}, {2})".format(
+            round(255 * fill_color.red),
+            round(255 * fill_color.green),
+            round(255 * fill_color.blue)
+        )
+
+    if is_installed:
+        logger.debug("fill color 2: %s" % fill_color)
 
     if icon_type.startswith("banner"):
         if not is_installed:

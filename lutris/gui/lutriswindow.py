@@ -31,7 +31,7 @@ from lutris.services import get_services_synced_at_startup, steam
 from lutris.sync import sync_from_remote
 from lutris.util import datapath, http
 from lutris.util.jobs import AsyncCall
-from lutris.util.gtkutils import get_background_color
+from lutris.util.gtkutils import get_treeview_bg_color
 from lutris.util.log import logger
 from lutris.vendor.gi_composites import GtkTemplate
 
@@ -96,14 +96,14 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
         self.selected_platform = None
         self.icon_type = None
 
-        self.bg_color_selected = get_background_color(self, Gtk.StateFlags.SELECTED)
-
         # Load settings
         self.window_size = (width, height)
         self.maximized = settings.read_setting("maximized") == "True"
 
         view_type = self.get_view_type()
         self.load_icon_type_from_settings(view_type)
+
+        self.bg_color_selected = get_treeview_bg_color(Gtk.StateFlags.SELECTED)
 
         # Window initialization
         self.game_actions = GameActions(application=application, window=self)
@@ -413,9 +413,6 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
         return self._game_details_view_visible
 
     def get_store(self, games=None):
-
-        # self.bg_color_selected = get_background_color(self, Gtk.StateFlags.SELECTED)
-
         logger.debug("BG Color: %s" % self.bg_color_selected)
 
         """Return an instance of GameStore"""
