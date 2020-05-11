@@ -13,6 +13,7 @@ from lutris.gui.views.pga_game import PgaGame
 from lutris.gui.widgets.utils import get_pixbuf_for_game
 from lutris.util import system
 from lutris.util.jobs import AsyncCall
+from lutris.util.gtkutils import get_treeview_bg_color
 from lutris.util.log import logger
 from lutris.util.resources import download_media, get_icon_path, update_desktop_icons
 
@@ -327,7 +328,7 @@ class GameStore(GObject.Object):
         row[COL_ICON] = get_pixbuf_for_game(
             game.slug,
             self.icon_type,
-            None, # Needs a color injected
+            get_treeview_bg_color(Gtk.StateFlags.SELECTED),
             game.installed
         )
         row[COL_YEAR] = game.year
@@ -430,7 +431,7 @@ class GameStore(GObject.Object):
                 get_pixbuf_for_game(
                     game.slug,
                     self.icon_type,
-                    None, # Needs a color injected
+                    get_treeview_bg_color(Gtk.StateFlags.SELECTED),
                     game.installed
                 ),
                 game.year,
