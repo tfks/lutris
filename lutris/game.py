@@ -70,6 +70,7 @@ class Game(GObject.Object):
         self.year = game_data.get("year") or ""
         self.lastplayed = game_data.get("lastplayed") or 0
         self.steamid = game_data.get("steamid") or ""
+        self.gogid = game_data.get("gogid") or ""
         self.has_custom_banner = bool(game_data.get("has_custom_banner"))
         self.has_custom_icon = bool(game_data.get("has_custom_icon"))
         self.discord_presence = DiscordPresence()

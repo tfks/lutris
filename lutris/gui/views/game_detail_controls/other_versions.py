@@ -61,6 +61,8 @@ class OtherVersionsView(Gtk.VBox):
 
         self.pack_start(box_tools, True, True, 6)
 
+        box_item_view = Gtk.Box(spacing=6, visible=True)
+
         self.item_view = Gtk.IconView()
         self.item_view.get_style_context().add_class("other-versions-view-item-view")
         self.item_view.set_visible(True)
@@ -68,7 +70,9 @@ class OtherVersionsView(Gtk.VBox):
 
         self.item_view.connect("selection-changed", self.on_selection_changed)
 
-        self.pack_end(self.item_view, True, True, 6)
+        box_item_view.pack_end(self.item_view, True, True, 6)
+
+        self.pack_end(box_item_view, True, True, 6)
 
     def create_button(self, text, icon, tooltip, visible, clicked_callback):
         btn = get_default_button(text, icon)

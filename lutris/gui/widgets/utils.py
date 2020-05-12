@@ -302,16 +302,19 @@ def convert_to_background_generic(
     dest_path = os.path.join(settings.CACHE_DIR, "customized_panel_bg.png")
     background.save(dest_path)
 
-    return dest_path
+    return (background, dest_path)
 
 
 def image2pixbuf(image):
     """Converts a PIL Image to a GDK Pixbuf"""
     glibbytes = GLib.Bytes.new(image.tobytes())
+
+    is_alpha = image.mode == 'RGBA'
+
     gdkpixbuf = GdkPixbuf.Pixbuf.new_from_data(
         glibbytes.get_data(),
         GdkPixbuf.Colorspace.RGB,
-        False,
+        is_alpha,
         8,
         image.width,
         image.height,
@@ -319,6 +322,7 @@ def image2pixbuf(image):
         None,
         None
     )
+
     return gdkpixbuf
 
 

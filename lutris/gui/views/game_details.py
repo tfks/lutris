@@ -2,7 +2,6 @@ from gi.repository import Gtk, Gdk
 from lutris import settings
 from lutris.gui.widgets.utils import get_pixbuf_for_game
 from lutris.gui.widgets.utils import convert_to_background_generic
-from lutris.gui.views.game_detail_controls.related_apps import RelatedApplications
 from lutris.gui.views.game_detail_controls.other_versions import OtherVersions
 from lutris.gui.views.game_detail_controls.other_versions_controls import other_versions_pga
 from lutris.gui.views.game_detail_controls.other_versions_controls.other_versions_store import OtherVersionsStore
@@ -20,11 +19,13 @@ class GameDetailsView(Gtk.VBox):
         self.game_store = store
         self.game_actions = game_actions
         self.game = game_actions.game
-        self.main_window=main_window
+        self.main_window = main_window
 
         self.allocation_values = None
 
-        self.window_size = (0,0)
+        self.window_size = (0, 0)
+
+        self.bg_info = None
 
         self.icon_type = None
 
@@ -50,28 +51,36 @@ class GameDetailsView(Gtk.VBox):
         if background_url == "":
             return False
 
-        bg_path = convert_to_background_generic(
-            # self.steam_api.get_game_header_image(812140),
+        self.bg_info = convert_to_background_generic(
             background_url,
             (bg_width, bg_height),
             True,
             False
         )
 
-        if not bg_path:
+        if self.bg_info is None:
             logger.debug("GameDetails: No image")
             return False
+
+        bg_image = self.bg_info[0]
+        bg_path = self.bg_info[1]
+
+        stylesheet = (
+            ".game-details {{ background-color: rgba(0, 0, 0, 0.6) }}"
+            '.game-details-header {{ background-image: url("{0}"); '
+            "background-repeat: no-repeat; "
+            "background-position: 0 0; "
+            "background-size: 100% 100%;"
+            "background-color: rgba(0, 0, 0, 1); }}").format(bg_path,
+                                                             bg_image.height)
+
+        logger.debug(stylesheet)
 
         style = Gtk.StyleContext()
         style.add_class(Gtk.STYLE_CLASS_VIEW)
         bg_provider = Gtk.CssProvider()
         bg_provider.load_from_data(
-            (".game-details { background-color: rgba(0, 0, 0, 0.6) }"
-             '.game-details-header { background-image: url("%s"); '
-             "background-repeat: no-repeat; "
-             "background-position: 0 100%%; "
-             "background-size: 100%%; "
-             "background-color: rgba(0, 0, 0, 1)}" % bg_path).encode("utf-8")
+            (stylesheet).encode("utf-8")
         )
         Gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(),
@@ -79,14 +88,17 @@ class GameDetailsView(Gtk.VBox):
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
         )
 
+        self.vbox_header.set_size_request(-1, 400)
+
         return True
 
     def get_background_url(self):
-        logger.info("steamid=%s" % self.game.steamid)
         if self.game.steamid != "":
+            logger.debug("steamid=%s" % self.game.steamid)
             return SteamGame.get_game_header_image(self.game)
-        # else if self.game is GOGGame:
-        # GOGGame.get_banner_large(self.game)
+        elif self.game.gogid != "":
+            logger.debug("gogid=%s" % self.game.gogid)
+            return GOGGame.get_banner_large(self.game)
         else:
             return ""
 
@@ -134,12 +146,9 @@ class GameDetailsView(Gtk.VBox):
 
         self.pack_end(box_content_dummy, True, True, 6)
 
-        # self.set_center_widget(box_content_dummy)
-
     def add_header_image(self):
         self.vbox_header = Gtk.VBox(spacing=0, visible=True)
         self.vbox_header.get_style_context().add_class("game-details-header")
-        self.vbox_header.set_size_request(-1, 400)
         self.pack_start(self.vbox_header, True, True, 0)
 
     def get_icon(self):
