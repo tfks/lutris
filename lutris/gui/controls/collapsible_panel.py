@@ -12,7 +12,7 @@ class CollapsiblePanel(Gtk.VBox):
         expanded=True
     ):
         super().__init__()
-        # setup main widget components
+
         self.set_spacing(spacing)
         self.set_visible(visible)
 
@@ -23,10 +23,8 @@ class CollapsiblePanel(Gtk.VBox):
 
         self.place_content()
 
-        # bind callbacks
         self.bind_callbacks()
 
-        # set expanded status
         self.expanded = expanded
 
     def expanded():
@@ -63,7 +61,6 @@ class CollapsiblePanel(Gtk.VBox):
         self.setup_content_host(self.collapsible_content)
 
     def setup_header(self, title):
-        # arrow widget - changes between side and down
         self.header_arrow = Gtk.Arrow(
             Gtk.ArrowType.DOWN,
             Gtk.ShadowType.NONE
@@ -71,21 +68,11 @@ class CollapsiblePanel(Gtk.VBox):
 
         self.header_arrow.set_visible(True)
 
-        # self.header_arrow.modify_fg(
-        #    Gtk.StateFlags.NORMAL,
-        #    self.header_arrow.get_colormap().alloc_color("white")
-        # )
-
         self.label = Gtk.Label(title)
         self.label.set_visible(True)
         self.label.modify_font(
             Pango.FontDescription("sans bold 13")
         )
-
-        # self.label.modify_fg(
-        #    Gtk.StateFlags.NORMAL,
-        #    self.label.get_colormap().alloc_color("white")
-        # )
 
         lbl_wrap = Gtk.Alignment.new(0.0, 0.5, 0.0, 0.0)
         lbl_wrap.set_visible(True)
@@ -101,21 +88,11 @@ class CollapsiblePanel(Gtk.VBox):
         self.header = Gtk.EventBox()
         self.header.set_visible(True)
 
-        # self.header.modify_bg(
-        #    Gtk.StateFlags.STATE_NORMAL, self.header.get_colormap().alloc_color("dark grey")
-        #)
-
-        # self.header.modify_bg(
-        #    Gtk.StateFlags.STATE_PRELIGHT, self.header.get_colormap().alloc_color("grey")
-        # )
-
         self.header.add(hbox)
 
         self.pack_start(self.header, False, False, 2)
 
-    # setup content host widget
     def setup_content_host(self, content):
-        # TODO: perhaps just something that we can give a light background?
         self.host = Gtk.VBox()
         self.host.set_visible(True)
 
@@ -126,7 +103,6 @@ class CollapsiblePanel(Gtk.VBox):
 
         self.add(self.host)
 
-    # Bind callbacks for widget components
     def bind_callbacks(self):
         # override show event, so that collapsed parts stay collapsed
         self.connect("show", self.show_all)
@@ -159,5 +135,4 @@ class CollapsiblePanel(Gtk.VBox):
 
     # click anywhere in header
     def header_click_cb(self, widget, event):
-        # simply toggle expanded status
         self.expanded ^= True

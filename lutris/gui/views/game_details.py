@@ -1,8 +1,11 @@
 from gi.repository import Gtk, Gdk
+from lutris import settings
 from lutris.gui.widgets.utils import get_pixbuf_for_game
 from lutris.gui.widgets.utils import convert_to_background_generic
 from lutris.gui.views.game_detail_controls.related_apps import RelatedApplications
 from lutris.gui.views.game_detail_controls.other_versions import OtherVersions
+from lutris.gui.views.game_detail_controls.other_versions_controls import other_versions_pga
+from lutris.gui.views.game_detail_controls.other_versions_controls.other_versions_store import OtherVersionsStore
 from lutris.util.log import logger
 from lutris.services.steam import SteamGame
 from lutris.services.gog import GOGGame
@@ -23,7 +26,11 @@ class GameDetailsView(Gtk.VBox):
 
         self.window_size = (0,0)
 
+        self.icon_type = None
+
         self.bg_color_selected = get_treeview_bg_color(Gtk.StateFlags.SELECTED)
+
+        self.other_versions_store = self.get_other_versions_store()
 
         self.get_style_context().add_class("game-details")
 
@@ -99,11 +106,27 @@ class GameDetailsView(Gtk.VBox):
 
         self.pack_start(box_header, False, False, 6)
 
-        other_versions = OtherVersions(6, True, self.game_store)
+        other_versions = OtherVersions(
+            spacing=6,
+            visible=True,
+            store=self.game_store,
+            title="Other versions",
+            info_text="Use this section to install different version of the same game. This can come in handy when trying out different settings but without having to uninstall the original version. In case the application needs Wine to run: The wizard will ask for the location where the new Wine-prefix is to be created.",
+            add_click_callback=self.on_add_other_version_clicked,
+            del_click_callback=self.on_del_other_version_clicked
+        )
 
         self.pack_start(other_versions, False, False, 6)
 
-        related_apps = RelatedApplications(6, True, self.game_store)
+        related_apps = OtherVersions(
+            spacing=6,
+            visible=True,
+            store=self.game_store,
+            title="Related applications",
+            info_text="Use this section to install extra applications which are specific to the main application. Examples are applications used for modding a game. In case the application needs Wine to run: if an application needs a specific Wine-prefix to run correctly, the Wizard has the option to create one.",
+            add_click_callback=self.on_add_related_app_clicked,
+            del_click_callback=self.on_del_related_app_clicked
+        )
 
         self.pack_start(related_apps, False, False, 6)
 
@@ -135,9 +158,10 @@ class GameDetailsView(Gtk.VBox):
         game_title_label.set_alignment(0.0, -1)
 
     def get_other_versions_store(self, other_versions=None):
-        # games = pga_other_versions.get_games()
+        other_versions = other_versions or other_versions_pga.get_other_versions(self.game)
+
         game_store = OtherVersionsStore(
-            games,
+            other_versions,
             self.icon_type,
             False,
             self.view_sorting,
@@ -150,13 +174,24 @@ class GameDetailsView(Gtk.VBox):
 
         return game_store
 
+    def on_add_other_version_clicked(self, button):
+        return
+
+    def on_del_other_version_clicked(self, button):
+        return
+
+    def on_add_related_app_clicked(self, button):
+        return
+
+    def on_del_related_app_clicked(self, button):
+        return
+
     def on_other_versions_sorting_changed(self, _game_store, key, ascending):
         self.actions["view-sorting-other-versions"].set_state(GLib.Variant.new_string(key))
         settings.write_setting("view_sorting_other_versions", key)
 
         self.actions["view-sorting-other-versions-ascending"].set_state(GLib.Variant.new_boolean(ascending))
         settings.write_setting("view_sorting_other_versions_ascending", bool(ascending))
-
 
     @property
     def view_sorting(self):

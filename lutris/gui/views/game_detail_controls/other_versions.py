@@ -1,69 +1,169 @@
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
+
+from lutris.gui.widgets.utils import (
+    get_default_button,
+    get_main_window
+)
 from lutris.gui.controls.collapsible_panel import CollapsiblePanel
 
 
-class OtherVersionsStore:
-    def __init__(self):
-        self.dummy = 1
-
-
 class OtherVersionsView(Gtk.VBox):
-    def __init__(self, spacing, visible, shortcut_store):
+    def __init__(
+        self,
+        spacing,
+        visible,
+        store,
+        add_click_callback,
+        del_click_callback
+    ):
         super().__init__()
         self.set_spacing(spacing)
         self.set_visible(visible)
-        self.shortcut_store = shortcut_store
+        self.shortcut_store = store
+
+        self.selected_game = None
+        self.current_path = None
+
+        self.add_click_callback = add_click_callback
+        self.del_click_callback = del_click_callback
+
+        self.get_style_context().add_class("other-versions-view")
+
+        self.item_view = None
+
+        self.place_content()
+
+    def place_content(self):
+        # Add toolbar with Add / remove buttons...
+        box_tools = Gtk.Box(spacing=6, visible=True)
+
+        btn_add = self.create_button(
+            text = "",
+            icon = "add",
+            tooltip = "Add another version",
+            visible = True,
+            clicked_callback = self.add_click_callback
+        )
+
+        box_tools.pack_start(btn_add, False, False, 6)
+
+        btn_del = self.create_button(
+            text = "",
+            icon = "delete",
+            tooltip = "Remove selected version",
+            visible = True,
+            clicked_callback = self.del_click_callback
+        )
+
+        btn_del.set_sensitive(False)
+
+        box_tools.pack_start(btn_del, False, False, 6)
+
+        self.pack_start(box_tools, True, True, 6)
+
+        self.item_view = Gtk.IconView()
+        self.item_view.get_style_context().add_class("other-versions-view-item-view")
+        self.item_view.set_visible(True)
+        self.item_view.set_size_request(-1, 200)
+
+        self.item_view.connect("selection-changed", self.on_selection_changed)
+
+        self.pack_end(self.item_view, True, True, 6)
+
+    def create_button(self, text, icon, tooltip, visible, clicked_callback):
+        btn = get_default_button(text, icon)
+        btn.set_tooltip_text(tooltip)
+        btn.set_visible(visible)
+
+        btn.connect("clicked", clicked_callback)
+
+        return btn
+
+    def get_selected_item(self):
+        """Return the currently selected game's id."""
+        selection = self.get_selected_items()
+        if not selection:
+            return
+        self.current_path = selection[0]
+        return self.get_model().get_iter(self.current_path)
+
+    def on_selection_changed(self, _view):
+        selected_item = self.get_selected_item()
+        if selected_item:
+            self.selected_game = self.get_selected_game(selected_item)
+        else:
+            self.selected_game = None
 
 
 class OtherVersions(Gtk.VBox):
-    def __init__(self, spacing, visible, store):
+    def __init__(
+        self,
+        spacing,
+        visible,
+        store,
+        title,
+        info_text,
+        add_click_callback,
+        del_click_callback
+    ):
         super().__init__()
         self.set_spacing(spacing)
         self.set_visible(visible)
-        self.game_store = store
 
-        self.other_versions_store = OtherVersionsStore()
+        self.add_click_callback = add_click_callback
+        self.del_click_callback = del_click_callback
+
+        self.title = title
+        self.info_text = info_text
+
+        self.get_style_context().add_class("other-versions")
+
+        self.other_versions_store = store
 
         self.col_pnl = None
         self.other_versions_view = None
 
         self.place_content()
 
+        self.set_styling()
+
     def place_content(self):
-        label_info = Gtk.Label("Use this section to install different version of the same game. This can come in handy when trying out different settings but without having to uninstall the original version. In case the application needs Wine to run: The wizard will ask for the location where the new Wine-prefix is to be created.")
+        label_info = Gtk.Label(self.info_text)
         label_info.set_line_wrap(True)
         label_info.set_visible(True)
 
         self.col_pnl = CollapsiblePanel(
             spacing=6,
             visible=True,
-            title="Other versions",
+            title=self.title,
             collapsible_content=None,
             non_collapsible_content=label_info,
-            expanded=True)
+            expanded=True
+        )
 
         self.add(self.col_pnl)
 
-        self.add_content_to_panel()
-
-        b2 = Gtk.Button("Replaced Content")
-        b2.set_visible(True)
-
-        b2.connect("clicked", self.on_button_clicked)
-
-        self.col_pnl.add_content(b2)
-
         self.other_versions_view = OtherVersionsView(
-            6,
-            True,
-            self.other_versions_store
+            spacing=6,
+            visible=True,
+            store=self.other_versions_store,
+            add_click_callback=self.add_click_callback,
+            del_click_callback=self.del_click_callback
         )
 
         self.col_pnl.add_content(self.other_versions_view)
 
-    def add_content_to_panel(self):
-        return
-
-    def on_button_clicked(self, widget):
-        self.col_pnl.set_title("Hacked")
-        self.col_pnl.set_expanded(False)
+    def set_styling(self):
+        style = Gtk.StyleContext()
+        style.add_class(Gtk.STYLE_CLASS_VIEW)
+        bg_provider = Gtk.CssProvider()
+        bg_provider.load_from_data(
+            (
+                ".other-versions { background-color: rgba(0, 0, 0, 0.2) }"
+            ).encode("utf-8")
+        )
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            bg_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
