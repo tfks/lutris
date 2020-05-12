@@ -46,7 +46,8 @@ class SidebarListBoxPlatforms(SidebarListBoxBase):
         self.active_platforms = pga.get_used_platforms()
         self.platforms = sorted(platforms.__all__)
 
-        self.add(SidebarRowPlatforms(None, "platform", "All", None))
+        icon = Gtk.Image.new_from_icon_name("gtk-select-all", Gtk.IconSize.MENU)
+        self.add(SidebarRowPlatforms(None, "platform", "All", icon))
         for platform in self.platforms:
             icon_name = (
                 platform.lower().replace(" ", "").replace("/", "_") + "-symbolic"

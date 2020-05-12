@@ -110,7 +110,8 @@ class SidebarListBoxRunners(SidebarListBoxBase):
         GObject.add_emission_hook(Game, "game-updated", self.update)
         GObject.add_emission_hook(Game, "game-removed", self.update)
 
-        all_row = SidebarRowRunners(None, "runner", "All", None)
+        icon = Gtk.Image.new_from_icon_name("gtk-select-all", Gtk.IconSize.MENU)
+        all_row = SidebarRowRunners(None, "runner", "All", icon)
         self.add(all_row)
         self.select_row(all_row)
         for runner in self.runners:
