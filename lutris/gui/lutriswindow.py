@@ -417,8 +417,6 @@ class LutrisWindow(Gtk.ApplicationWindow):  # pylint: disable=too-many-public-me
         return self._game_details_view_visible
 
     def get_store(self, games=None):
-        logger.debug("BG Color: %s" % self.bg_color_selected)
-
         """Return an instance of GameStore"""
         games = games or pga.get_games(show_installed_first=self.show_installed_first)
         game_store = GameStore(

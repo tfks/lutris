@@ -6,6 +6,7 @@ from lutris.gui.views.game_detail_controls.other_versions import OtherVersions
 from lutris.util.log import logger
 from lutris.services.steam import SteamGame
 from lutris.services.gog import GOGGame
+from lutris.util.gtkutils import get_treeview_bg_color
 
 
 class GameDetailsView(Gtk.VBox):
@@ -21,6 +22,8 @@ class GameDetailsView(Gtk.VBox):
         self.allocation_values = None
 
         self.window_size = (0,0)
+
+        self.bg_color_selected = get_treeview_bg_color(Gtk.StateFlags.SELECTED)
 
         self.get_style_context().add_class("game-details")
 
@@ -131,3 +134,34 @@ class GameDetailsView(Gtk.VBox):
         )
         game_title_label.set_alignment(0.0, -1)
 
+    def get_other_versions_store(self, other_versions=None):
+        # games = pga_other_versions.get_games()
+        game_store = OtherVersionsStore(
+            games,
+            self.icon_type,
+            False,
+            self.view_sorting,
+            self.view_sorting_ascending,
+            True,
+            False,
+            self.bg_color_selected
+        )
+        game_store.connect("sorting-changed", self.on_other_versions_sorting_changed)
+
+        return game_store
+
+    def on_other_versions_sorting_changed(self, _game_store, key, ascending):
+        self.actions["view-sorting-other-versions"].set_state(GLib.Variant.new_string(key))
+        settings.write_setting("view_sorting_other_versions", key)
+
+        self.actions["view-sorting-other-versions-ascending"].set_state(GLib.Variant.new_boolean(ascending))
+        settings.write_setting("view_sorting_other_versions_ascending", bool(ascending))
+
+
+    @property
+    def view_sorting(self):
+        return settings.read_setting("view_sorting_other_versions") or "name"
+
+    @property
+    def view_sorting_ascending(self):
+        return settings.read_setting("view_sorting_other_versions_ascending").lower() != "false"

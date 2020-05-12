@@ -1,4 +1,5 @@
 from gi.repository import Gtk
+from lutris.gui.views.store import GameStore
 
 
-class OtherVersionsStore(Gtk.ListStore):
+class OtherVersionsStore(GameStore):
