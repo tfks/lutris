@@ -10,6 +10,23 @@ from lutris.services.steam import SteamGame
 from lutris.services.gog import GOGGame
 from lutris.util.gtkutils import get_treeview_bg_color
 
+from . import (
+    COL_ICON,
+    COL_ID,
+    COL_INSTALLED,
+    COL_INSTALLED_AT,
+    COL_INSTALLED_AT_TEXT,
+    COL_LASTPLAYED,
+    COL_LASTPLAYED_TEXT,
+    COL_NAME,
+    COL_PLATFORM,
+    COL_PLAYTIME,
+    COL_PLAYTIME_TEXT,
+    COL_RUNNER,
+    COL_RUNNER_HUMAN_NAME,
+    COL_SLUG, COL_YEAR
+)
+
 
 class GameDetailsView(Gtk.VBox):
     def __init__(self, spacing, visible, store, game_actions, main_window):
@@ -125,7 +142,10 @@ class GameDetailsView(Gtk.VBox):
             title="Other versions",
             info_text="Use this section to install different version of the same game. This can come in handy when trying out different settings but without having to uninstall the original version. In case the application needs Wine to run: The wizard will ask for the location where the new Wine-prefix is to be created.",
             add_click_callback=self.on_add_other_version_clicked,
-            del_click_callback=self.on_del_other_version_clicked
+            del_click_callback=self.on_del_other_version_clicked,
+            play_click_callback=self.on_play_other_version_clicked,
+            stop_click_callback=self.on_stop_other_version_clicked,
+            configure_click_callback=self.on_configure_other_version_clicked
         )
 
         self.pack_start(other_versions, False, False, 6)
@@ -137,7 +157,10 @@ class GameDetailsView(Gtk.VBox):
             title="Related applications",
             info_text="Use this section to install extra applications which are specific to the main application. Examples are applications used for modding a game. In case the application needs Wine to run: if an application needs a specific Wine-prefix to run correctly, the Wizard has the option to create one.",
             add_click_callback=self.on_add_related_app_clicked,
-            del_click_callback=self.on_del_related_app_clicked
+            del_click_callback=self.on_del_related_app_clicked,
+            play_click_callback=self.on_play_related_app_clicked,
+            stop_click_callback=self.on_stop_related_app_clicked,
+            configure_click_callback=self.on_configure_related_app_clicked
         )
 
         self.pack_start(related_apps, False, False, 6)
@@ -189,10 +212,28 @@ class GameDetailsView(Gtk.VBox):
     def on_del_other_version_clicked(self, button):
         return
 
+    def on_play_other_version_clicked(self, button):
+        return
+
+    def on_stop_other_version_clicked(self, button):
+        return
+
+    def on_configure_other_version_clicked(self, button):
+        return
+
     def on_add_related_app_clicked(self, button):
         return
 
     def on_del_related_app_clicked(self, button):
+        return
+
+    def on_play_related_app_clicked(self, button):
+        return
+
+    def on_stop_related_app_clicked(self, button):
+        return
+
+    def on_configure_related_app_clicked(self, button):
         return
 
     def on_other_versions_sorting_changed(self, _game_store, key, ascending):

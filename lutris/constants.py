@@ -28,3 +28,4 @@ class Gog:
 
 class GameDetailsView:
     BACKGROUND_OPACITY = 0.2
+
