@@ -3,8 +3,12 @@ from lutris import settings
 from lutris.gui.widgets.utils import get_pixbuf_for_game
 from lutris.gui.widgets.utils import convert_to_background_generic
 from lutris.gui.views.game_detail_controls.other_versions import OtherVersions
-from lutris.gui.views.game_detail_controls.other_versions_controls import other_versions_pga
-from lutris.gui.views.game_detail_controls.other_versions_controls.other_versions_store import OtherVersionsStore
+from lutris.gui.views.game_detail_controls.other_versions_controls import (
+    other_versions_pga
+)
+from lutris.gui.views.game_detail_controls.other_versions_controls.other_versions_store import (
+    OtherVersionsStore
+)
 from lutris.util.log import logger
 from lutris.services.steam import SteamGame
 from lutris.services.gog import GOGGame
