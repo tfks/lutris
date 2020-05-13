@@ -12,3 +12,4 @@ def get_other_versions(
         return None
 
     # Select config files from game id's directory
+    # ~/.cache/lutris/other-versions/game-slug/uid?.yaml

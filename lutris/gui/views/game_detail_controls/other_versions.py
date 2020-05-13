@@ -14,7 +14,10 @@ class OtherVersionsView(Gtk.VBox):
         visible,
         store,
         add_click_callback,
-        del_click_callback
+        del_click_callback,
+        play_click_callback,
+        stop_click_callback,
+        configure_click_callback
     ):
         super().__init__()
         self.set_spacing(spacing)
@@ -24,8 +27,13 @@ class OtherVersionsView(Gtk.VBox):
         self.selected_game = None
         self.current_path = None
 
+        self.btn_play = None
+
         self.add_click_callback = add_click_callback
         self.del_click_callback = del_click_callback
+        self.play_click_callback = play_click_callback
+        self.stop_click_callback = stop_click_callback
+        self.configure_click_callback = configure_click_callback
 
         self.get_style_context().add_class("other-versions-view")
 
@@ -42,6 +50,7 @@ class OtherVersionsView(Gtk.VBox):
             icon = "add",
             tooltip = "Add another version",
             visible = True,
+            sensitive = True,
             clicked_callback = self.add_click_callback
         )
 
@@ -52,12 +61,56 @@ class OtherVersionsView(Gtk.VBox):
             icon = "delete",
             tooltip = "Remove selected version",
             visible = True,
+            sensitive = False,
             clicked_callback = self.del_click_callback
         )
 
-        btn_del.set_sensitive(False)
-
         box_tools.pack_start(btn_del, False, False, 6)
+
+        hsep1 = Gtk.HSeparator()
+
+        hsep1.set_visible(True)
+
+        box_tools.pack_start(hsep1, False, False, 6)
+
+        self.btn_play = self.create_button(
+            text = "",
+            icon = "media-playback-start",
+            tooltip = "Play",
+            visible = True,
+            sensitive = False,
+            clicked_callback = self.play_click_callback
+        )
+
+        box_tools.pack_start(self.btn_play, False, False, 6)
+
+        self.btn_stop = self.create_button(
+            text = "",
+            icon = "media-playback-stop",
+            tooltip = "Stop",
+            visible = False,
+            sensitive = False,
+            clicked_callback = self.stop_click_callback
+        )
+
+        box_tools.pack_start(self.btn_stop, False, False, 6)
+
+        hsep2 = Gtk.HSeparator()
+
+        hsep2.set_visible(True)
+
+        box_tools.pack_start(hsep2, False, False, 6)
+
+        self.btn_config = self.create_button(
+            text = "",
+            icon = "preferences-system-symbolic",
+            tooltip = "Configure",
+            visible = True,
+            sensitive = False,
+            clicked_callback = self.configure_click_callback
+        )
+
+        box_tools.pack_start(self.btn_config, False, False, 6)
 
         self.pack_start(box_tools, True, True, 6)
 
@@ -74,10 +127,11 @@ class OtherVersionsView(Gtk.VBox):
 
         self.pack_end(box_item_view, True, True, 6)
 
-    def create_button(self, text, icon, tooltip, visible, clicked_callback):
+    def create_button(self, text, icon, tooltip, visible, sensitive, clicked_callback):
         btn = get_default_button(text, icon)
         btn.set_tooltip_text(tooltip)
         btn.set_visible(visible)
+        btn.set_sensitive(sensitive)
 
         btn.connect("clicked", clicked_callback)
 
@@ -108,7 +162,10 @@ class OtherVersions(Gtk.VBox):
         title,
         info_text,
         add_click_callback,
-        del_click_callback
+        del_click_callback,
+        play_click_callback,
+        stop_click_callback,
+        configure_click_callback
     ):
         super().__init__()
         self.set_spacing(spacing)
@@ -116,6 +173,9 @@ class OtherVersions(Gtk.VBox):
 
         self.add_click_callback = add_click_callback
         self.del_click_callback = del_click_callback
+        self.play_click_callback = play_click_callback
+        self.stop_click_callback = stop_click_callback
+        self.configure_click_callback = configure_click_callback
 
         self.title = title
         self.info_text = info_text
@@ -152,7 +212,10 @@ class OtherVersions(Gtk.VBox):
             visible=True,
             store=self.other_versions_store,
             add_click_callback=self.add_click_callback,
-            del_click_callback=self.del_click_callback
+            del_click_callback=self.del_click_callback,
+            play_click_callback=self.play_click_callback,
+            stop_click_callback=self.stop_click_callback,
+            configure_click_callback=self.configure_click_callback
         )
 
         self.col_pnl.add_content(self.other_versions_view)
