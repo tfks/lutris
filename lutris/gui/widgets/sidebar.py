@@ -59,3 +59,4 @@ class SidebarContainer(Gtk.VBox):
         box.pack_start(sidebarControlPlatforms, False, False, 12)
 
         self.pack_start(box, True, True, 0)
+        return True
