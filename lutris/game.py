@@ -7,6 +7,7 @@ import os
 import shlex
 import subprocess
 import time
+from gettext import gettext as _
 
 # Third Party Libraries
 from gi.repository import GLib, GObject, Gtk
@@ -21,7 +22,7 @@ from lutris.gui import dialogs
 from lutris.runners import InvalidRunner, import_runner, wine
 from lutris.settings import DEFAULT_DISCORD_CLIENT_ID
 from lutris.util import audio, jobs, strings, system, xdgshortcuts
-from lutris.util.display import DISPLAY_MANAGER, get_compositor_commands, restore_gamma
+from lutris.util.display import DISPLAY_MANAGER, disable_compositing, enable_compositing, restore_gamma
 from lutris.util.graphics.xrandr import turn_off_except
 from lutris.util.linux import LINUX_SYSTEM
 from lutris.util.log import logger
@@ -89,7 +90,6 @@ class Game(GObject.Object):
         self.game_runtime_config = {}
         self.resolution_changed = False
         self.compositor_disabled = False
-        self.stop_compositor = self.start_compositor = ""
         self.original_outputs = None
         self._log_buffer = None
         self.timer = Timer()
@@ -133,19 +133,19 @@ class Game(GObject.Object):
             message_text = message["text"].replace("&", "&amp;")
             dialogs.ErrorDialog(message_text)
         elif message["error"] == "RUNNER_NOT_INSTALLED":
-            dialogs.ErrorDialog("Error the runner is not installed")
+            dialogs.ErrorDialog(_("Error the runner is not installed"))
         elif message["error"] == "NO_BIOS":
-            dialogs.ErrorDialog("A bios file is required to run this game")
+            dialogs.ErrorDialog(_("A bios file is required to run this game"))
         elif message["error"] == "FILE_NOT_FOUND":
             filename = message["file"]
             if filename:
-                message_text = "The file {} could not be found".format(filename.replace("&", "&amp;"))
+                message_text = _("The file {} could not be found").format(filename.replace("&", "&amp;"))
             else:
-                message_text = "No file provided"
+                message_text = _("No file provided")
             dialogs.ErrorDialog(message_text)
         elif message["error"] == "NOT_EXECUTABLE":
             message_text = message["file"].replace("&", "&amp;")
-            dialogs.ErrorDialog("The file %s is not executable" % message_text)
+            dialogs.ErrorDialog(_("The file %s is not executable") % message_text)
 
     def get_browse_dir(self):
         """Return the path to open with the Browse Files action."""
@@ -179,14 +179,12 @@ class Game(GObject.Object):
     def set_desktop_compositing(self, enable):
         """Enables or disables compositing"""
         if enable:
-            system.execute(self.start_compositor, shell=True)
+            if self.compositor_disabled:
+                enable_compositing()
+                self.compositor_disabled = False
         else:
-            (
-                self.start_compositor,
-                self.stop_compositor,
-            ) = get_compositor_commands()
-            if not (self.compositor_disabled or not self.stop_compositor):
-                system.execute(self.stop_compositor, shell=True)
+            if not self.compositor_disabled:
+                disable_compositing()
                 self.compositor_disabled = True
 
     def remove(self, from_library=False, from_disk=False):
@@ -267,7 +265,7 @@ class Game(GObject.Object):
             runtime_updater = runtime.RuntimeUpdater()
             if runtime_updater.is_updating():
                 logger.warning("Runtime updates: %s", runtime_updater.current_updates)
-                dialogs.ErrorDialog("Runtime currently updating", "Game might not work as expected")
+                dialogs.ErrorDialog(_("Runtime currently updating"), _("Game might not work as expected"))
         if ("wine" in self.runner_name and not wine.get_system_wine_version() and not LINUX_SYSTEM.is_flatpak):
             # TODO find a reference to the root window or better yet a way not
             # to have Gtk dependent code in this class.
@@ -278,7 +276,7 @@ class Game(GObject.Object):
     def play(self):
         """Launch the game."""
         if not self.runner:
-            dialogs.ErrorDialog("Invalid game configuration: Missing runner")
+            dialogs.ErrorDialog(_("Invalid game configuration: Missing runner"))
             self.state = self.STATE_STOPPED
             self.emit("game-stop")
             return
@@ -303,7 +301,7 @@ class Game(GObject.Object):
             dialogs.ErrorDialog(str(error))
         if not prelaunched:
             logger.error("Game prelaunch unsuccessful")
-            dialogs.ErrorDialog("An error prevented the game from running")
+            dialogs.ErrorDialog(_("An error prevented the game from running"))
             self.state = self.STATE_STOPPED
             self.emit("game-stop")
             return
@@ -448,7 +446,7 @@ class Game(GObject.Object):
         if terminal:
             terminal = system_config.get("terminal_app", system.get_default_terminal())
             if terminal and not system.find_executable(terminal):
-                dialogs.ErrorDialog("The selected terminal application " "could not be launched:\n" "%s" % terminal)
+                dialogs.ErrorDialog(_("The selected terminal application could not be launched:\n%s") % terminal)
                 self.state = self.STATE_STOPPED
                 self.emit("game-stop")
                 return
@@ -473,10 +471,13 @@ class Game(GObject.Object):
         # Feral gamemode
         gamemode = system_config.get("gamemode")
         if gamemode:
-            env["LD_PRELOAD"] = ":".join([path for path in [
-                env.get("LD_PRELOAD"),
-                "libgamemodeauto.so",
-            ] if path])
+            if system.find_executable("gamemoderun"):
+                launch_arguments.insert(0, "gamemoderun")
+            else:
+                env["LD_PRELOAD"] = ":".join([path for path in [
+                    env.get("LD_PRELOAD"),
+                    "libgamemodeauto.so",
+                ] if path])
 
         # LD_LIBRARY_PATH
         game_ld_libary_path = gameplay_info.get("ld_library_path")
@@ -501,15 +502,17 @@ class Game(GObject.Object):
             self.set_desktop_compositing(False)
 
         prelaunch_command = system_config.get("prelaunch_command")
-        if system.path_exists(prelaunch_command):
-            self.prelaunch_executor = MonitoredCommand(
-                [prelaunch_command],
-                include_processes=[os.path.basename(prelaunch_command)],
-                env=self.game_runtime_config["env"],
-                cwd=self.directory,
-            )
-            self.prelaunch_executor.start()
-            logger.info("Running %s in the background", prelaunch_command)
+        if prelaunch_command:
+            command_array = shlex.split(prelaunch_command)
+            if system.path_exists(command_array[0]):
+                self.prelaunch_executor = MonitoredCommand(
+                    command_array,
+                    include_processes=[os.path.basename(command_array[0])],
+                    env=self.game_runtime_config["env"],
+                    cwd=self.directory,
+                )
+                self.prelaunch_executor.start()
+                logger.info("Running %s in the background", prelaunch_command)
         if system_config.get("prelaunch_wait"):
             self.heartbeat = GLib.timeout_add(HEARTBEAT_DELAY, self.prelaunch_beat)
         else:
@@ -553,7 +556,7 @@ class Game(GObject.Object):
     def beat(self):
         """Watch the game's process(es)."""
         if self.game_thread.error:
-            dialogs.ErrorDialog("<b>Error lauching the game:</b>\n" + self.game_thread.error)
+            dialogs.ErrorDialog(_("<b>Error lauching the game:</b>\n") + self.game_thread.error)
             self.on_game_quit()
             return False
 
@@ -596,15 +599,17 @@ class Game(GObject.Object):
 
         # Check for post game script
         postexit_command = self.runner.system_config.get("postexit_command")
-        if system.path_exists(postexit_command):
-            logger.info("Running post-exit command: %s", postexit_command)
-            postexit_thread = MonitoredCommand(
-                [postexit_command],
-                include_processes=[os.path.basename(postexit_command)],
-                env=self.game_runtime_config["env"],
-                cwd=self.directory,
-            )
-            postexit_thread.start()
+        if postexit_command:
+            command_array = shlex.split(postexit_command)
+            if system.path_exists(command_array[0]):
+                logger.info("Running post-exit command: %s", postexit_command)
+                postexit_thread = MonitoredCommand(
+                    command_array,
+                    include_processes=[os.path.basename(postexit_command)],
+                    env=self.game_runtime_config["env"],
+                    cwd=self.directory,
+                )
+                postexit_thread.start()
 
         if self.discord_presence.available:
             self.discord_presence.clear_discord_rich_presence()
@@ -637,13 +642,13 @@ class Game(GObject.Object):
             error = "error while loading shared lib"
             error_line = strings.lookup_string_in_text(error, self.game_thread.stdout)
             if error_line:
-                dialogs.ErrorDialog("<b>Error: Missing shared library.</b>" "\n\n%s" % error_line)
+                dialogs.ErrorDialog(_("<b>Error: Missing shared library.</b>\n\n%s") % error_line)
 
         if self.game_thread.return_code == 1:
             # Error Wine version conflict
             error = "maybe the wrong wineserver"
             if strings.lookup_string_in_text(error, self.game_thread.stdout):
-                dialogs.ErrorDialog("<b>Error: A different Wine version is " "already using the same Wine prefix.</b>")
+                dialogs.ErrorDialog(_("<b>Error: A different Wine version is already using the same Wine prefix.</b>"))
 
     def notify_steam_game_changed(self, appmanifest):
         """Receive updates from Steam games and set the thread's ready state accordingly"""

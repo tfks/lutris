@@ -3,6 +3,7 @@
 import json
 import os
 import time
+from gettext import gettext as _
 from urllib.parse import parse_qsl, urlencode, urlparse
 
 # Lutris Modules
@@ -16,7 +17,7 @@ from lutris.util.http import HTTPError, Request
 from lutris.util.log import logger
 from lutris.util.resources import download_media
 
-NAME = "GOG"
+NAME = _("GOG")
 ICON = "gog"
 ONLINE = True
 
@@ -331,9 +332,12 @@ class GOGSyncer:
         lutris_games = api.get_api_games(gog_ids, query_type="gogid")
         added_games = []
         for game in lutris_games:
+            lutris_data = pga.get_game_by_field(game["slug"], field="slug")
             game_data = {
                 "name": game["name"],
                 "slug": game["slug"],
+                "installed": lutris_data["installed"],
+                "configpath": lutris_data["configpath"],
                 "year": game["year"],
                 "updated": game["updated"],
                 "gogid": game.get("gogid"),  # GOG IDs will be added at a later stage in the API
