@@ -1,4 +1,5 @@
 """Game panel"""
+from gettext import gettext as _
 # Third Party Libraries
 from gi.repository import GObject, Gtk, Pango
 

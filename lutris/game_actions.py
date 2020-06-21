@@ -4,6 +4,7 @@
 # pylint: disable=too-many-public-methods
 import os
 import signal
+from gettext import gettext as _
 
 # Third Party Libraries
 from gi.repository import Gio
@@ -278,7 +279,7 @@ class GameActions:
     def on_show_logs(self, _widget):
         """Display game log"""
         return LogWindow(
-            title="Log for {}".format(self.game), buffer=self.game.log_buffer, application=self.application
+            title=_("Log for {}").format(self.game), buffer=self.game.log_buffer, application=self.application
         )
 
     def on_install_clicked(self, *_args):
@@ -309,11 +310,11 @@ class GameActions:
         """Callback to open a game folder in the file browser"""
         path = self.game.get_browse_dir()
         if not path:
-            dialogs.NoticeDialog("This game has no installation directory")
+            dialogs.NoticeDialog(_("This game has no installation directory"))
         elif path_exists(path):
             open_uri("file://%s" % path)
         else:
-            dialogs.NoticeDialog("Can't open %s \nThe folder doesn't exist." % path)
+            dialogs.NoticeDialog(_("Can't open %s \nThe folder doesn't exist.") % path)
 
     def on_create_menu_shortcut(self, *_args):
         """Add the selected game to the system's Games menu."""

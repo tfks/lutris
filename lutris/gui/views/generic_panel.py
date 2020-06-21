@@ -1,5 +1,6 @@
 """Side panel when no game is selected"""
 from gi.repository import Gtk, Gdk, GObject, GLib
+from gettext import gettext as _
 # Third Party Libraries
 
 # Lutris Modules

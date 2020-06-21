@@ -1,5 +1,6 @@
 """Sidebar for the main window"""
 from gi.repository import Gtk
+from gettext import gettext as _
 
 from lutris.gui.widgets.sidebar_controls.listbox_runners import SidebarListBoxRunners
 from lutris.gui.widgets.sidebar_controls.listbox_platforms import SidebarListBoxPlatforms

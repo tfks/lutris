@@ -2,6 +2,7 @@
 # Standard Library
 import os
 import re
+from gettext import gettext as _
 
 # Lutris Modules
 from lutris import pga
