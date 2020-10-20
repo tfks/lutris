@@ -1,11 +1,9 @@
-# Standard Library
 from gettext import gettext as _
 
-# Third Party Libraries
 from gi.repository import GLib, GObject, Gtk, Pango
 
-# Lutris Modules
 from lutris.util.downloader import Downloader
+from lutris.util.strings import gtk_safe
 
 
 class DownloadProgressBox(Gtk.Box):
@@ -31,7 +29,7 @@ class DownloadProgressBox(Gtk.Box):
         self.main_label.set_alignment(0, 0)
         self.main_label.set_property("wrap", True)
         self.main_label.set_margin_bottom(10)
-        self.main_label.set_max_width_chars(70)
+        # self.main_label.set_max_width_chars(70)
         self.main_label.set_selectable(True)
         self.main_label.set_property("ellipsize", Pango.EllipsizeMode.MIDDLE)
         self.pack_start(self.main_label, True, True, 0)
@@ -57,6 +55,7 @@ class DownloadProgressBox(Gtk.Box):
         self.pack_start(self.progress_label, True, True, 0)
 
         self.show_all()
+        self.cancel_button.hide()
 
     def start(self):
         """Start downloading a file."""
@@ -71,6 +70,7 @@ class DownloadProgressBox(Gtk.Box):
                 return None
 
         timer_id = GLib.timeout_add(500, self._progress)
+        self.cancel_button.show()
         self.cancel_button.set_sensitive(True)
         if not self.downloader.state == self.downloader.DOWNLOADING:
             self.downloader.start()
@@ -91,7 +91,7 @@ class DownloadProgressBox(Gtk.Box):
             if self.downloader.state == self.downloader.CANCELLED:
                 self._set_text(_("Download interrupted"))
             else:
-                self._set_text(self.downloader.error)
+                self._set_text(self.downloader.error[:80])
             if self.downloader.state == self.downloader.CANCELLED:
                 self.emit("cancel", {})
             return False
@@ -113,5 +113,5 @@ class DownloadProgressBox(Gtk.Box):
         return True
 
     def _set_text(self, text):
-        markup = u"<span size='10000'>{}</span>".format(text)
+        markup = u"<span size='10000'>{}</span>".format(gtk_safe(text))
         self.progress_label.set_markup(markup)

@@ -16,7 +16,13 @@ def get_devices():
     if not evdev:
         logger.warning("python3-evdev not installed, controller support not available")
         return []
-    return [evdev.InputDevice(dev) for dev in evdev.list_devices()]
+    _devices = []
+    for dev in evdev.list_devices():
+        try:
+            _devices.append(evdev.InputDevice(dev))
+        except RuntimeError:
+            pass
+    return _devices
 
 
 def get_joypads():
@@ -28,6 +34,7 @@ def read_button(device):
     """Reference function for reading controller buttons and axis values.
     Not to be used as is.
     """
+    # pylint: disable=no-member
     for event in device.read_loop():
         if event.type == evdev.ecodes.EV_KEY and event.value == 0:
             print("button %s (%s): %s" % (event.code, hex(event.code), event.value))

@@ -1,19 +1,28 @@
 """System utilities"""
-# Standard Library
 import hashlib
 import os
 import re
 import shutil
 import signal
+import stat
 import string
 import subprocess
 
-# Lutris Modules
+from gi.repository import GLib
+
+from lutris import settings
 from lutris.util.linux import LINUX_SYSTEM
 from lutris.util.log import logger
 
+# Home folders that should never get deleted. This should be localized and return the
+# appropriate folders names for the current locale.
+PROTECTED_HOME_FOLDERS = (
+    "Documents", "Downloads", "Desktop",
+    "Pictures", "Videos", "Pictures", "Projects", "Games"
+)
 
-def execute(command, env=None, cwd=None, log_errors=False, quiet=False, shell=False):
+
+def execute(command, env=None, cwd=None, log_errors=False, quiet=False, shell=False, timeout=None):
     """
         Execute a system command and return its results.
 
@@ -23,6 +32,7 @@ def execute(command, env=None, cwd=None, log_errors=False, quiet=False, shell=Fa
             cwd (str): Working directory
             log_errors (bool): Pipe stderr to stdout (might cause slowdowns)
             quiet (bool): Do not display log messages
+            timeout (int): Number of seconds the program is allowed to run, disabled by default
 
         Returns:
             str: stdout output
@@ -31,10 +41,10 @@ def execute(command, env=None, cwd=None, log_errors=False, quiet=False, shell=Fa
     # Check if the executable exists
     if not command:
         logger.error("No executable provided!")
-        return
+        return ""
     if os.path.isabs(command[0]) and not path_exists(command[0]):
         logger.error("No executable found in %s", command)
-        return
+        return ""
 
     if not quiet:
         logger.debug("Executing %s", " ".join([str(i) for i in command]))
@@ -57,10 +67,13 @@ def execute(command, env=None, cwd=None, log_errors=False, quiet=False, shell=Fa
             stderr=subprocess.PIPE if log_errors else subprocess.DEVNULL,
             env=existing_env,
             cwd=cwd,
-        ).communicate()
+        ).communicate(timeout=timeout)
     except (OSError, TypeError) as ex:
         logger.error("Could not run command %s (env: %s): %s", command, env, ex)
-        return
+        return ""
+    except subprocess.TimeoutExpired:
+        logger.error("Command %s after %s seconds", command, timeout)
+        return ""
     if stderr and log_errors:
         logger.error(stderr)
     return stdout.decode(errors="replace").strip()
@@ -86,6 +99,16 @@ def get_file_checksum(filename, hash_type):
         for chunk in iter(lambda: input_file.read(4096), b""):
             hasher.update(chunk)
     return hasher.hexdigest()
+
+
+def is_executable(exec_path):
+    """Return whether exec_path is an executable"""
+    return os.access(exec_path, os.X_OK)
+
+
+def make_executable(exec_path):
+    file_stats = os.stat(exec_path)
+    os.chmod(exec_path, file_stats.st_mode | stat.S_IEXEC)
 
 
 def find_executable(exec_name):
@@ -215,9 +238,9 @@ def create_folder(path):
     return path
 
 
-def is_removeable(path, excludes=None):
+def is_removeable(path):
     """Check if a folder is safe to remove (not system or home, ...)"""
-    if not path_exists(path) or path in excludes:
+    if not path_exists(path):
         return False
 
     parts = path.strip("/").split("/")
@@ -227,12 +250,9 @@ def is_removeable(path, excludes=None):
 
     if parts[0] == "home":
         if len(parts) <= 2:
-            # Path is a home folder
             return False
-        if parts[2] == ".wine":
-            # Protect main .wine folder
+        if len(parts) == 3 and parts[2] in PROTECTED_HOME_FOLDERS:
             return False
-
     return True
 
 
@@ -302,16 +322,19 @@ def reverse_expanduser(path):
     return path
 
 
-def path_exists(path, check_symlinks=False):
+def path_exists(path, check_symlinks=False, exclude_empty=False):
     """Wrapper around system.path_exists that doesn't crash with empty values
 
     Params:
         path (str): File to the file to check
         check_symlinks (bool): If the path is a broken symlink, return False
+        exclude_empty (bool): If true, consider 0 bytes files as non existing
     """
     if not path:
         return False
     if os.path.exists(path):
+        if exclude_empty:
+            return os.stat(path).st_size > 0
         return True
     if os.path.islink(path):
         logger.warning("%s is a broken link", path)
@@ -351,3 +374,24 @@ def get_existing_parent(path):
     if os.path.exists(path) and not os.path.isfile(path):
         return path
     return get_existing_parent(os.path.dirname(path))
+
+
+def update_desktop_icons():
+    """Update Icon for GTK+ desktop manager
+    Other desktop manager icon cache commands must be added here if needed
+    """
+    if find_executable("gtk-update-icon-cache"):
+        execute(["gtk-update-icon-cache", "-tf", os.path.join(GLib.get_user_data_dir(), "icons/hicolor")], quiet=True)
+        execute(["gtk-update-icon-cache", "-tf", os.path.join(settings.RUNTIME_DIR, "icons/hicolor")], quiet=True)
+
+
+def get_disk_size(path):
+    """Return the disk size in bytes of a folder"""
+    total_size = 0
+    for base, _dirs, files in os.walk(path):
+        total_size += sum([
+            os.stat(os.path.join(base, f)).st_size
+            for f in files
+            if os.path.isfile(os.path.join(base, f))
+        ])
+    return total_size

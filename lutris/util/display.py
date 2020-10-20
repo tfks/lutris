@@ -3,6 +3,9 @@
 import enum
 import os
 import subprocess
+import gi
+
+gi.require_version("GnomeDesktop", "3.0")
 
 try:
     from dbus.exceptions import DBusException
@@ -10,7 +13,7 @@ try:
 except ImportError:
     DBUS_AVAILABLE = False
 
-from gi.repository import Gdk, GLib, GnomeDesktop
+from gi.repository import Gdk, GLib, GnomeDesktop, Gio
 
 from lutris.util import system
 from lutris.util.graphics.displayconfig import MutterDisplayManager
@@ -47,7 +50,7 @@ def _get_graphics_adapters():
         return []
     return [
         (pci_id, device_desc.split(": ")[1]) for pci_id, device_desc in [
-            line.split(maxsplit=1) for line in system.execute(lspci_path).split("\n")
+            line.split(maxsplit=1) for line in system.execute(lspci_path, timeout=3).split("\n")
             if any(subclass in line for subclass in dev_subclasses)
         ]
     ]
@@ -135,11 +138,11 @@ class DesktopEnvironment(enum.Enum):
 
     """Enum of desktop environments."""
 
-    PLASMA = enum.auto()
-    MATE = enum.auto()
-    XFCE = enum.auto()
-    DEEPIN = enum.auto()
-    UNKNOWN = enum.auto()
+    PLASMA = 0
+    MATE = 1
+    XFCE = 2
+    DEEPIN = 3
+    UNKNOWN = 999
 
 
 def get_desktop_environment():
@@ -162,7 +165,16 @@ def get_desktop_environment():
 
 
 def _get_command_output(*command):
-    return subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, close_fds=True).communicate()[0]
+    """Some rogue function that gives no shit about residing in the correct module"""
+    try:
+        return subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            close_fds=True
+        ).communicate()[0]
+    except FileNotFoundError:
+        logger.error("Unable to run command, %s not found", command[0])
 
 
 def is_compositing_enabled():
@@ -221,7 +233,13 @@ def _get_compositor_commands():
 
 
 def _run_command(*command):
-    return subprocess.Popen(command, stdin=subprocess.DEVNULL, close_fds=True)
+    """Random _run_command lost in the middle of the project,
+    are you lost little _run_command?
+    """
+    try:
+        return subprocess.Popen(command, stdin=subprocess.DEVNULL, close_fds=True)
+    except FileNotFoundError:
+        logger.error("Oh no")
 
 
 def disable_compositing():
@@ -248,3 +266,52 @@ def enable_compositing():
     start_compositor, _ = _get_compositor_commands()
     if start_compositor:
         _run_command(*start_compositor)
+
+
+class DBusScreenSaverInhibitor:
+
+    """Inhibit and uninhibit the screen saver using DBus.
+    Requires the Inhibit() and UnInhibit() methods to be exposed over DBus."""
+
+    def __init__(self, name, path, interface, bus_type=Gio.BusType.SESSION):
+        self.proxy = Gio.DBusProxy.new_for_bus_sync(
+            bus_type, Gio.DBusProxyFlags.NONE, None, name, path, interface, None)
+
+    def inhibit(self, game_name):
+        """Inhibit the screen saver.
+        Returns a cookie that must be passed to the corresponding uninhibit() call.
+        If an error occurs, None is returned instead."""
+        try:
+            return self.proxy.Inhibit("(ss)", "Lutris", "Running game: %s" % game_name)
+        except Exception:
+            return None
+
+    def uninhibit(self, cookie):
+        """Uninhibit the screen saver.
+        Takes a cookie as returned by inhibit. If cookie is None, no action is taken."""
+        if cookie is not None:
+            self.proxy.UnInhibit("(u)", cookie)
+
+
+def _get_screen_saver_inhibitor():
+    """Return the appropriate screen saver inhibitor instance.
+    Returns None if the required interface isn't available."""
+    desktop_environment = get_desktop_environment()
+    if desktop_environment is DesktopEnvironment.MATE:
+        name = "org.mate.ScreenSaver"
+        path = "/"
+    elif desktop_environment is DesktopEnvironment.XFCE:
+        name = "org.xfce.ScreenSaver"
+        path = "/"
+    else:
+        name = "org.freedesktop.ScreenSaver"
+        path = "/org/freedesktop/ScreenSaver"
+    interface = name
+    try:
+        return DBusScreenSaverInhibitor(name, path, interface)
+    except GLib.Error as err:
+        logger.error("Error during creation of DBusScreenSaverInhibitor: %s", err.message)  # pylint: disable=no-member
+        return None
+
+
+SCREEN_SAVER_INHIBITOR = _get_screen_saver_inhibitor()

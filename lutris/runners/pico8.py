@@ -1,5 +1,4 @@
 """Runner for the PICO-8 fantasy console"""
-# Standard Library
 import json
 import math
 import os
@@ -7,10 +6,11 @@ import shutil
 from gettext import gettext as _
 from time import sleep
 
-# Lutris Modules
-from lutris import pga, settings
+from lutris import settings
+from lutris.database.games import get_game_by_field
 from lutris.runners.runner import Runner
-from lutris.util import datapath, downloader, system
+from lutris.util import system
+from lutris.util.downloader import Downloader
 from lutris.util.log import logger
 from lutris.util.strings import split_arguments
 
@@ -81,14 +81,14 @@ class pico8(Runner):
     def __repr__(self):
         return _("PICO-8 runner (%s)") % self.config
 
-    def install(self, version=None, _downloader=None, callback=None):
+    def install(self, version=None, downloader=None, callback=None):
         opts = {}
         if callback:
             opts["callback"] = callback
         opts["dest"] = settings.RUNNER_DIR + "/pico8"
         opts["merge_single"] = True
-        if _downloader:
-            opts["downloader"] = _downloader
+        if downloader:
+            opts["downloader"] = downloader
         else:
             raise RuntimeError("Unsupported download for this runner")
         self.download_and_extract(DOWNLOAD_URL, **opts)
@@ -185,7 +185,7 @@ class pico8(Runner):
                         os.remove(cartPath + ".download")
                     downloadCompleted = True
 
-                dl = downloader.Downloader(
+                dl = Downloader(
                     downloadUrl,
                     cartPath + ".download",
                     True,
@@ -195,7 +195,7 @@ class pico8(Runner):
 
                 # Wait for download to complete or continue if it exists (to work in offline mode)
                 while not os.path.exists(cartPath):
-                    if downloadCompleted or dl.state == downloader.Downloader.ERROR:
+                    if downloadCompleted or dl.state == Downloader.ERROR:
                         logger.error("Could not download cartridge from %s", downloadUrl)
                         return False
                     sleep(0.1)
@@ -216,13 +216,13 @@ class pico8(Runner):
                     nonlocal downloadCompleted
                     downloadCompleted = True
 
-                dl = downloader.Downloader(downloadUrl, enginePath, True, callback=on_downloaded_engine)
+                dl = Downloader(downloadUrl, enginePath, True, callback=on_downloaded_engine)
                 dl.start()
                 dl.thread.join()  # Doesn't actually wait until finished
 
                 # Waits for download to complete
                 while not os.path.exists(enginePath):
-                    if downloadCompleted or dl.state == downloader.Downloader.ERROR:
+                    if downloadCompleted or dl.state == Downloader.ERROR:
                         logger.error("Could not download engine from %s", downloadUrl)
                         return False
                     sleep(0.1)
@@ -233,7 +233,7 @@ class pico8(Runner):
         launch_info = {}
         launch_info["env"] = self.get_env(os_env=False)
 
-        game_data = pga.get_game_by_field(self.config.game_config_id, "configpath")
+        game_data = get_game_by_field(self.config.game_config_id, "configpath")
 
         command = self.launch_args
 
@@ -249,11 +249,10 @@ class pico8(Runner):
             command.append("--name")
             command.append(game_data.get("name") + " - PICO-8")
 
-            icon = datapath.get_icon_path(game_data.get("slug"))
-            if not os.path.exists(icon):
-                icon = os.path.join(datapath.get(), "media/runner_icons/pico8.png")
-            command.append("--icon")
-            command.append(icon)
+            # icon = datapath.get_icon_path(game_data.get("slug"))
+            # if icon:
+            #     command.append("--icon")
+            #     command.append(icon)
 
             webargs = {
                 "cartridge": self.cart_path,

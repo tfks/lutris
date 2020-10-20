@@ -11,20 +11,11 @@ from gi.repository import GObject, Gtk
 from lutris import runners, settings
 from lutris.gui.config.runner import RunnerConfigDialog
 from lutris.gui.dialogs import ErrorDialog, GtkBuilderDialog
-from lutris.gui.dialogs.download import DownloadDialog
+from lutris.gui.dialogs.download import simple_downloader
 from lutris.gui.dialogs.runner_install import RunnerInstallDialog
 from lutris.gui.widgets.utils import ICON_SIZE, get_builder_from_file, get_icon, open_uri
 from lutris.util import datapath
 from lutris.util.log import logger
-
-
-def simple_downloader(url, destination, callback, callback_args=None):
-    """Default downloader used for runners"""
-    if not callback_args:
-        callback_args = {}
-    dialog = DownloadDialog(url, destination)
-    dialog.run()
-    return callback(**callback_args)
 
 
 class RunnersDialog(GtkBuilderDialog):
@@ -62,7 +53,11 @@ class RunnersDialog(GtkBuilderDialog):
     def get_runner_hbox(self, runner_name):
         # Get runner details
         runner = runners.import_runner(runner_name)()
-        platform = ", ".join(sorted(list(set(runner.platforms))))
+        platform_list = sorted(list(set(runner.platforms)))
+        if len(platform_list) > 4:
+            platform = _("Multiple platforms")
+        else:
+            platform = ", ".join(platform_list)
 
         builder = Gtk.Builder()
         builder.add_from_file(self.runner_entry_ui)
@@ -140,7 +135,7 @@ class RunnersDialog(GtkBuilderDialog):
             runners.RunnerInstallationError,
             runners.NonInstallableRunnerError,
         ) as ex:
-            ErrorDialog(ex.message, parent=self)
+            ErrorDialog(ex.message, parent=self.dialog)
         if runner.is_installed():
             self.emit("runner-installed")
             self.refresh_button.emit("clicked")
@@ -203,7 +198,7 @@ class RunnersDialog(GtkBuilderDialog):
         self.populate_runners()
 
     def on_close_clicked(self, _widget):
-        self.destroy()
+        self.destroy()  # pylint: disable=no-member
 
     def set_install_state(self, _widget, runner, runner_label):
         if runner.is_installed():

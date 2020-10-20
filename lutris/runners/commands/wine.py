@@ -1,17 +1,16 @@
 """Wine commands for installers"""
-# Standard Library
 # pylint: disable=too-many-arguments
 import os
 import shlex
 import time
 
-# Lutris Modules
 from lutris import runtime, settings
 from lutris.command import MonitoredCommand
 from lutris.config import LutrisConfig
 from lutris.runners import import_runner
 from lutris.util import system
 from lutris.util.log import logger
+from lutris.util.shell import get_shell_command
 from lutris.util.strings import split_arguments
 from lutris.util.wine.cabinstall import CabInstaller
 from lutris.util.wine.prefix import WinePrefixManager
@@ -398,3 +397,16 @@ def install_cab_component(cabfile, component, wine_path=None, prefix=None, arch=
     for registry_file, _arch in registry_files:
         set_regedit_file(registry_file, wine_path=wine_path, prefix=prefix, arch=_arch)
     cab_installer.cleanup()
+
+
+def open_wine_terminal(terminal, wine_path, prefix, env):
+    aliases = {
+        "wine": wine_path,
+        "winecfg": wine_path + "cfg",
+        "wineserver": wine_path + "server",
+        "wineboot": wine_path + "boot",
+    }
+    env["WINEPREFIX"] = prefix
+    shell_command = get_shell_command(prefix, env, aliases)
+    terminal = terminal or system.get_default_terminal()
+    system.execute([system.get_default_terminal(), "-e", shell_command])

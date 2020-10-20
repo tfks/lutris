@@ -1,26 +1,54 @@
 """Steam service"""
-# Standard Library
+import json
 import os
 import re
 from gettext import gettext as _
 
-# Lutris Modules
-from lutris import pga
-from lutris.config import LutrisConfig, make_game_config_id
-from lutris.services.service_game import ServiceGame
-from lutris.util.steam.appmanifest import AppManifest, get_appmanifests
-from lutris.util.steam.config import get_steamapps_paths
+from gi.repository import Gio
 
-NAME = _("Steam")
-ICON = "steam"
-ONLINE = False
+from lutris import settings
+from lutris.database.games import get_games
+from lutris.game import Game
+from lutris.installer.installer_file import InstallerFile
+from lutris.services.base import BaseService
+from lutris.services.service_game import ServiceGame
+from lutris.services.service_media import ServiceMedia
+from lutris.util.log import logger
+from lutris.util.steam.config import get_steam_dir, get_steam_library, get_user_steam_id
+from lutris.util.strings import slugify
+
+
+class SteamBanner(ServiceMedia):
+    service = "steam"
+    size = (184, 69)
+    dest_path = os.path.join(settings.CACHE_DIR, "steam/banners")
+    file_pattern = "%s.jpg"
+    api_field = "appid"
+    url_pattern = "http://cdn.akamai.steamstatic.com/steam/apps/%s/capsule_184x69.jpg"
+
+
+class SteamCover(ServiceMedia):
+    service = "steam"
+    size = (200, 300)
+    dest_path = os.path.join(settings.CACHE_DIR, "steam/covers")
+    file_pattern = "%s.jpg"
+    api_field = "appid"
+    url_pattern = "http://cdn.steamstatic.com/steam/apps/%s/library_600x900.jpg"
+
+
+class SteamBannerLarge(ServiceMedia):
+    service = "steam"
+    size = (460, 215)
+    dest_path = os.path.join(settings.CACHE_DIR, "steam/header")
+    file_pattern = "%s.jpg"
+    api_field = "appid"
+    url_pattern = "https://cdn.cloudflare.steamstatic.com/steam/apps/%s/header.jpg"
 
 
 class SteamGame(ServiceGame):
-
     """ServiceGame for Steam games"""
 
-    store = "steam"
+    service = "steam"
     installer_slug = "steam"
     excluded_appids = [
         "228980",  # Steamworks Common Redistributables
@@ -28,125 +56,95 @@ class SteamGame(ServiceGame):
     ]
 
     @classmethod
-    def new_from_steam_game(cls, appmanifest, game_id=None):
+    def new_from_steam_game(cls, steam_game, game_id=None):
         """Return a Steam game instance from an AppManifest"""
-        steam_game = SteamGame()
-        steam_game.appid = str(appmanifest.steamid)
-        steam_game.game_id = game_id
-        steam_game.name = appmanifest.name
-        steam_game.slug = appmanifest.slug
-        steam_game.runner = appmanifest.get_runner_name()
-        return steam_game
-
-    @classmethod
-    def new_from_lutris_id(cls, game_id):
-        steam_game = SteamGame()
-        steam_game.game_id = game_id
-        return steam_game
-
-    @property
-    def config_id(self):
-        return make_game_config_id(self.slug)
+        game = SteamGame()
+        game.appid = steam_game["appid"]
+        game.game_id = steam_game["appid"]
+        game.name = steam_game["name"]
+        game.slug = slugify(steam_game["name"])
+        game.runner = "steam"
+        game.details = json.dumps(steam_game)
+        return game
 
     @classmethod
     def is_importable(cls, appmanifest):
         """Return whether a Steam game should be imported"""
-        if not appmanifest.is_installed():
-            return False
         if appmanifest.steamid in cls.excluded_appids:
             return False
         if re.match(r"^Proton \d*", appmanifest.name):
             return False
         return True
 
-    def create_config(self):
-        """Create the game configuration for a Steam game"""
-        game_config = LutrisConfig(runner_slug=self.runner, game_config_id=self.config_id)
-        game_config.raw_game_config.update({"appid": self.appid})
-        game_config.save()
 
+class SteamService(BaseService):
 
-class SteamSyncer:
-
-    """Sync Steam games to the local library"""
-    platform = "linux"
-
-    def __init__(self):
-        self._lutris_games = None
-        self._lutris_steamids = None
-
-    @property
-    def runner(self):
-        """Return the appropriate runner for the platform"""
-        return "steam" if self.platform == "linux" else "winesteam"
-
-    @property
-    def lutris_games(self):
-        """Return all Steam games present in the Lutris library"""
-        if not self._lutris_games:
-            self._lutris_games = pga.get_games_where(steamid__isnull=False, steamid__not="")
-        return self._lutris_games
-
-    @property
-    def lutris_steamids(self):
-        """Return the Steam IDs of the games installed in Lutris"""
-        if not self._lutris_steamids:
-            self._lutris_steamids = {str(game["steamid"]) for game in self.lutris_games}
-        return self._lutris_steamids
+    id = "steam"
+    name = _("Steam")
+    icon = "steam"
+    online = False
+    medias = {
+        "banner": SteamBanner,
+        "banner_large": SteamBannerLarge,
+        "cover": SteamCover,
+    }
+    default_format = "banner"
+    is_loading = False
 
     def load(self):
         """Return importable Steam games"""
-        games = []
-        steamapps_paths = get_steamapps_paths()
-        for steamapps_path in steamapps_paths[self.platform]:
-            for appmanifest_file in get_appmanifests(steamapps_path):
-                app_manifest = AppManifest(os.path.join(steamapps_path, appmanifest_file))
-                if SteamGame.is_importable(app_manifest):
-                    games.append(SteamGame.new_from_steam_game(app_manifest))
-        return games
+        if self.is_loading:
+            logger.warning("Steam games are already loading")
+            return
+        self.is_loading = True
+        self.emit("service-games-load")
 
-    def get_pga_game(self, game):
-        """Return a PGA game if one is found"""
-        for pga_game in self.lutris_games:
-            if (
-                str(pga_game["steamid"]) == game.appid
-                and (pga_game["runner"] == self.runner or not pga_game["runner"]) and not pga_game["installed"]
-            ):
-                return pga_game
+        steam_dir = get_steam_dir()
 
-    def sync(self, games, full=False):
-        """Syncs Steam games to Lutris"""
-        available_ids = set()  # Set of Steam appids seen while browsing AppManifests
-        added_games = []
-        for game in games:
-            steamid = game.appid
-            available_ids.add(steamid)
-            pga_game = self.get_pga_game(game)
+        for steam_game in get_steam_library(get_user_steam_id(steam_dir)):
+            game = SteamGame.new_from_steam_game(steam_game)
+            game.save()
 
-            if pga_game:
-                if (steamid in self.lutris_steamids and pga_game["installed"] != 1 and pga_game["installed"]):
-                    added_games.append(game.install())
+        self.match_games()
+        self.is_loading = False
+        logger.debug("Steam games loaded")
+        self.emit("service-games-loaded")
 
-            if steamid not in self.lutris_steamids:
-                added_games.append(game.install())
-            else:
-                if pga_game:
-                    added_games.append(game.install(pga_game))
+    def get_installer_files(self, installer, installer_file_id):
+        steam_uri = "$WINESTEAM:%s:." if installer.runner == "winesteam" else "$STEAM:%s:."
+        appid = str(installer.script["game"]["appid"])
+        return [
+            InstallerFile(installer.game_slug, "steam_game", {
+                "url": steam_uri % appid,
+                "filename": appid
+            })
+        ]
 
-        if not full:
-            return added_games, games
+    def generate_installer(self, db_game):
+        """Generate a basic Steam installer"""
+        return {
+            "name": db_game["name"],
+            "version": "Steam",
+            "slug": slugify(db_game["name"]) + "-steam",
+            "game_slug": slugify(db_game["name"]),
+            "runner": "steam",
+            "appid": db_game["appid"],
+            "script": {
+                "game": {"appid": db_game["appid"]}
+            }
+        }
 
-        removed_games = []
-        unavailable_ids = self.lutris_steamids.difference(available_ids)
-        for steamid in unavailable_ids:
-            for pga_game in self.lutris_games:
-                if (
-                    str(pga_game["steamid"]) == steamid and pga_game["installed"] and pga_game["runner"] == self.runner
-                ):
-                    game = SteamGame.new_from_lutris_id(pga_game["id"])
-                    game.uninstall()
-                    removed_games.append(pga_game["id"])
-        return (added_games, removed_games)
-
-
-SYNCER = SteamSyncer
+    def install(self, db_game):
+        appid = db_game["appid"]
+        db_games = get_games(filters={"steamid": appid, "installed": "1"})
+        existing_game = self.match_existing_game(db_games, appid)
+        if existing_game:
+            logger.debug("Found steam game: %s", existing_game)
+            game = Game(existing_game["id"])
+            game.save()
+            return
+        service_installers = self.get_installers_from_api(appid)
+        if not service_installers:
+            service_installers = [self.generate_installer(db_game)]
+        application = Gio.Application.get_default()
+        application.show_installer_window(service_installers, service=self, appid=appid)

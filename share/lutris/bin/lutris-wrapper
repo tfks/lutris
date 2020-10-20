@@ -141,17 +141,17 @@ def main():
 
         while True:
             try:
-                dead_pid, dead_returncode, _ = os.wait3(os.WNOHANG)
+                dead_pid, dead_returncode, usage = os.wait3(os.WNOHANG)
             except ChildProcessError:
                 # No processes remain. No need to check monitor.
                 raise NoMoreChildren from None
 
+            if returncode is None and dead_pid == initial_pid:
+                returncode = dead_returncode
+                log("Initial process has exited (return code: %s)" % dead_returncode)
+
             if dead_pid == 0:
                 break
-
-            if returncode is None and dead_pid == initial_pid:
-                log("Initial process has exited.")
-                returncode = dead_returncode
 
     try:
         # While we are inside this try..except, if at the time of any
@@ -167,7 +167,7 @@ def main():
         #  the initial process may have been excluded. Wait for the game
         #  to be considered "started".
         if not monitor.is_game_alive():
-            log("Waiting for game to be considered started (first non-excluded process started)")
+            log("Waiting for game to start (first non-excluded process started)")
             while not monitor.is_game_alive():
                 async_reap_children()
                 time.sleep(0.1)
@@ -176,14 +176,13 @@ def main():
         #  The game is running. Our process is now just waiting around
         #  for processes to exit, waiting up every .1s to reap child
         #  processes.
-        log("Game is considered started.")
+        log("Start monitoring process.")
         while monitor.is_game_alive():
             async_reap_children()
             time.sleep(0.1)
 
-        log("Game is considered exited.")
+        log("Monitored process exited.")
         async_reap_children()
-
 
         # The exit wait loop:
         #  The game is no longer running. We ask monitored processes
@@ -197,7 +196,6 @@ def main():
                     os.kill(child.pid, signal.SIGTERM)
                 except ProcessLookupError:  # process already dead
                     pass
-
 
             # Spend 60 seconds waiting for processes to clean up.
             async_reap_children()
@@ -219,7 +217,7 @@ def main():
 
     if returncode is None:
         returncode = 0
-        log("Never found the initial process' return code. Weird?")
+        log("Monitored process didn't return an exit code.")
     log("Exit with returncode %s" % returncode)
     sys.exit(returncode)
 

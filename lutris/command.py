@@ -1,6 +1,4 @@
 """Threading module, used to launch games while monitoring them."""
-
-# Standard Library
 import contextlib
 import fcntl
 import io
@@ -8,15 +6,13 @@ import os
 import shlex
 import subprocess
 import sys
-from textwrap import dedent
 
-# Third Party Libraries
 from gi.repository import GLib
 
-# Lutris Modules
 from lutris import runtime, settings
 from lutris.util import system
 from lutris.util.log import logger
+from lutris.util.shell import get_terminal_script
 
 
 def get_wrapper_script_location():
@@ -65,7 +61,7 @@ class MonitoredCommand:
         self.game_process = None
         self.prevent_on_stop = False
         self.return_code = None
-        self.terminal = system.find_executable(term)
+        self.terminal = term
         self.is_running = True
         self.error = None
         self.log_handlers = [
@@ -136,7 +132,12 @@ class MonitoredCommand:
         logger.debug(" ".join(self.wrapper_command))
 
         if self.terminal:
-            self.game_process = self.run_in_terminal()
+            terminal = system.find_executable(self.terminal)
+            if not terminal:
+                logger.error("Couldn't find terminal %s", self.terminal)
+                return
+            script_path = get_terminal_script(self.wrapper_command, self.cwd, self.env)
+            self.game_process = self.execute_process([terminal, "-e", script_path])
         else:
             env = self.get_child_environment()
             self.game_process = self.execute_process(self.wrapper_command, env)
@@ -171,14 +172,16 @@ class MonitoredCommand:
             sys.stdout.write(line)
             sys.stdout.flush()
 
-    def on_stop(self, _pid, returncode):
+    def on_stop(self, pid, _user_data):
         """Callback registered on game process termination"""
         if self.prevent_on_stop:  # stop() already in progress
             return False
-
-        logger.debug("The process has terminated with code %s", returncode)
+        if self.game_process.returncode is None:
+            logger.debug("Process hasn't terminated yet")
+            self.game_process.wait()
+        logger.debug("Process %s has terminated with code %s", pid, self.game_process.returncode)
         self.is_running = False
-        self.return_code = returncode
+        self.return_code = self.game_process.returncode
 
         resume_stop = self.stop()
         if not resume_stop:
@@ -205,30 +208,6 @@ class MonitoredCommand:
             log_handler(line)
         return True
 
-    def run_in_terminal(self):
-        """Write command in a script file and run it.
-
-        Running it from a file is likely the only way to set env vars only
-        for the command (not for the terminal app).
-        It's also the only reliable way to keep the term open when the
-        game is quit.
-        """
-        script_path = os.path.join(settings.CACHE_DIR, "run_in_term.sh")
-        exported_environment = "\n".join('export %s="%s" ' % (key, value) for key, value in self.env.items())
-        command = " ".join(['"%s"' % token for token in self.wrapper_command])
-        with open(script_path, "w") as script_file:
-            script_file.write(
-                dedent(
-                    """#!/bin/sh
-                cd "%s"
-                %s
-                exec %s
-                """ % (self.cwd, exported_environment, command)
-                )
-            )
-            os.chmod(script_path, 0o744)
-        return self.execute_process([self.terminal, "-e", script_path])
-
     def execute_process(self, command, env=None):
         """Execute and return a subprocess"""
         if self.cwd and not system.path_exists(self.cwd):
@@ -238,7 +217,6 @@ class MonitoredCommand:
                 logger.error("Failed to create working directory, falling back to %s", self.fallback_cwd)
                 self.cwd = "/tmp"
         try:
-
             return subprocess.Popen(
                 command,
                 stdout=subprocess.PIPE,
@@ -257,8 +235,9 @@ class MonitoredCommand:
 
         try:
             self.game_process.terminate()
-        except ProcessLookupError:  # process already dead.
-            logger.debug("Management process looks dead already.")
+        except ProcessLookupError:
+            # process already dead.
+            pass
 
         if hasattr(self, "stop_func"):
             resume_stop = self.stop_func()

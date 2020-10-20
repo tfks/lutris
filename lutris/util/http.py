@@ -1,23 +1,22 @@
-# Standard Library
+"""HTTP utilities"""
 import json
+import os
 import socket
 import urllib.error
 import urllib.parse
 import urllib.request
 from ssl import CertificateError
 
-# Lutris Modules
 from lutris.settings import PROJECT, SITE_URL, VERSION
+from lutris.util import system
 from lutris.util.log import logger
 
 
 class HTTPError(Exception):
-
     """Exception raised on request failures"""
 
 
 class UnauthorizedAccess(Exception):
-
     """Exception raised for 401 HTTP errors"""
 
 
@@ -34,11 +33,14 @@ class Request:
 
         if not url:
             raise ValueError("An URL is required!")
+        if url == "None":
+            raise ValueError("You'd better stop that right now.")
 
         if url.startswith("//"):
             url = "https:" + url
 
         if url.startswith("/"):
+            logger.error("Stop using relative URLs!: %s", url)
             url = SITE_URL + url
 
         self.url = url
@@ -69,7 +71,10 @@ class Request:
 
     def get(self, data=None):
         logger.debug("GET %s", self.url)
-        req = urllib.request.Request(url=self.url, data=data, headers=self.headers)
+        try:
+            req = urllib.request.Request(url=self.url, data=data, headers=self.headers)
+        except ValueError as ex:
+            raise HTTPError("Failed to create HTTP request to %s: %s" % (self.url, ex))
         try:
             if self.opener:
                 request = self.opener.open(req, timeout=self.timeout)
@@ -81,8 +86,6 @@ class Request:
             raise HTTPError("Request to %s failed: %s" % (self.url, error))
         except (socket.timeout, urllib.error.URLError) as error:
             raise HTTPError("Unable to connect to server %s: %s" % (self.url, error))
-        if request.getcode() > 200:
-            logger.debug("Server responded with status code %s", request.getcode())
         try:
             self.total_size = int(request.info().get("Content-Length").strip())
         except AttributeError:
@@ -105,7 +108,7 @@ class Request:
                 return self
             try:
                 chunk = request.read(self.buffer_size)
-            except socket.timeout:
+            except (socket.timeout, ConnectionResetError):
                 raise HTTPError("Request timed out")
             self.downloaded_size += len(chunk)
             if not chunk:
@@ -117,9 +120,15 @@ class Request:
 
     def write_to_file(self, path):
         content = self.content
-        if content:
-            with open(path, "wb") as dest_file:
-                dest_file.write(content)
+        logger.info("Writing to %s", path)
+        if not content:
+            logger.warning("No content to write")
+            return
+        dirname = os.path.dirname(path)
+        if not system.path_exists(dirname):
+            os.makedirs(dirname)
+        with open(path, "wb") as dest_file:
+            dest_file.write(content)
 
     @property
     def json(self):
@@ -135,3 +144,21 @@ class Request:
         if self.content:
             return self.content.decode()
         return ""
+
+
+def download_file(url, dest, overwrite=False):
+    """Save a remote resource locally"""
+    if system.path_exists(dest):
+        if overwrite:
+            os.remove(dest)
+        else:
+            return dest
+    if not url:
+        return None
+    try:
+        request = Request(url).get()
+    except HTTPError as ex:
+        logger.error("Failed to get url %s: %s", url, ex)
+        return
+    request.write_to_file(dest)
+    return dest

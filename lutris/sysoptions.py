@@ -10,7 +10,7 @@ from gettext import gettext as _
 from lutris import runners
 from lutris.discord import DiscordPresence
 from lutris.util import system
-from lutris.util.display import DISPLAY_MANAGER, USE_DRI_PRIME
+from lutris.util.display import DISPLAY_MANAGER, SCREEN_SAVER_INHIBITOR, USE_DRI_PRIME
 
 VULKAN_DATA_DIRS = [
     "/usr/local/etc/vulkan",  # standard site-local location
@@ -157,6 +157,17 @@ system_options = [  # pylint: disable=invalid-name
                   "reducing stuttering and increasing performance"),
     },
     {
+        "option": "disable_screen_saver",
+        "label": _("Disable screen saver"),
+        "type": "bool",
+        "default": SCREEN_SAVER_INHIBITOR is not None,
+        "advanced": False,
+        "condition": SCREEN_SAVER_INHIBITOR is not None,
+        "help": _("Disable the screen saver while a game is running. "
+                  "Requires the screen saver's functionality "
+                  "to be exposed over DBus."),
+    },
+    {
         "option": "reset_pulse",
         "type": "bool",
         "label": _("Reset PulseAudio"),
@@ -204,22 +215,31 @@ system_options = [  # pylint: disable=invalid-name
                   "Primus VK provide vulkan support under bumblebee."),
     },
     {
-        "option":
-        "vk_icd",
-        "type":
-        "choice",
-        "default":
-        "",
-        "choices":
-        get_vk_icd_choices,
-        "label":
-        _("Vulkan ICD loader"),
-        "advanced":
-        True,
+        "option": "vk_icd",
+        "type": "choice",
+        "default": "",
+        "choices": get_vk_icd_choices,
+        "label": _("Vulkan ICD loader"),
+        "advanced": True,
         "help": _("The ICD loader is a library that is placed between a Vulkan "
                   "application and any number of Vulkan drivers, in order to support "
                   "multiple drivers and the instance-level functionality that works "
                   "across these drivers.")
+    },
+    {
+        "option": "mangohud",
+        "type": "choice",
+        "label": _("FPS counter (MangoHud)"),
+        "choices": (
+            (_("Disabled"), ""),
+            (_("Enabled (Vulkan)"), "vk64"),
+            (_("Enabled (OpenGL)"), "gl64"),
+            (_("Enabled (OpenGL, 32bit)"), "gl32")
+        ),
+        "default": "",
+        "advanced": False,
+        "condition": bool(system.find_executable("mangohud")),
+        "help": _("Display the game's FPS + other information. Requires MangoHud to be installed."),
     },
     {
         "option": "fps_limit",
@@ -241,7 +261,7 @@ system_options = [  # pylint: disable=invalid-name
     {
         "option": "gamemode",
         "type": "bool",
-        "default": system.LINUX_SYSTEM.gamemode_available,
+        "default": system.LINUX_SYSTEM.gamemode_available(),
         "condition": system.LINUX_SYSTEM.gamemode_available,
         "label": _("Enable Feral gamemode"),
         "help": _("Request a set of optimisations be temporarily applied to the host OS"),

@@ -4,9 +4,12 @@ import math
 import re
 import shlex
 import unicodedata
+import uuid
 
 # Lutris Modules
 from lutris.util.log import logger
+
+NO_PLAYTIME = "Never played"
 
 
 def slugify(value):
@@ -15,16 +18,21 @@ def slugify(value):
     Normalizes string, converts to lowercase, removes non-alpha characters,
     and converts spaces to hyphens.
     """
-    value = str(value)
+    _value = str(value)
     # This differs from the Lutris website implementation which uses the Django
     # version of `slugify` and uses the "NFKD" normalization method instead of
     # "NFD". This creates some inconsistencies in titles containing a trademark
     # symbols or some other special characters. The website version of slugify
     # will likely get updated to use the same normalization method.
-    value = unicodedata.normalize("NFD", value).encode("ascii", "ignore")
-    value = value.decode("utf-8")
-    value = str(re.sub(r"[^\w\s-]", "", value)).strip().lower()
-    return re.sub(r"[-\s]+", "-", value)
+    _value = unicodedata.normalize("NFD", _value).encode("ascii", "ignore")
+    _value = _value.decode("utf-8")
+    _value = str(re.sub(r"[^\w\s-]", "", _value)).strip().lower()
+    slug = re.sub(r"[-\s]+", "-", _value)
+    if not slug:
+        # The slug is empty, likely because the string contains only non-latin
+        # characters
+        slug = str(uuid.uuid5(uuid.NAMESPACE_URL, str(value)))
+    return slug
 
 
 def add_url_tags(text):
@@ -66,7 +74,7 @@ def parse_version(version):
     version_number = version_match.groups()[0]
     prefix = version[0:version_match.span()[0]]
     suffix = version[version_match.span()[1]:]
-    return [int(p) for p in version_number.split(".")], prefix, suffix
+    return [int(p) for p in version_number.split(".")], suffix, prefix
 
 
 def version_sort(versions, reverse=False):
@@ -104,23 +112,15 @@ def gtk_safe(string):
     """Return a string ready to used in Gtk widgets"""
     if not string:
         string = ""
+    string = str(string)
     return string.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-
-def escape_gtk_label(string):
-    """Used to escape some characters for display in Gtk labels"""
-    return re.sub("&(?!amp;)", "&amp;", string)
 
 
 def get_formatted_playtime(playtime):
     """Return a human readable value of the play time"""
     if not playtime:
-        return "No play time recorded"
+        return NO_PLAYTIME
 
-    try:
-        playtime = float(playtime)
-    except TypeError:
-        return "Invalid playtime %s" % playtime
     hours = math.floor(playtime)
 
     if hours:
@@ -137,15 +137,34 @@ def get_formatted_playtime(playtime):
     formatted_time = " and ".join([text for text in (hours_text, minutes_text) if text])
     if formatted_time:
         return formatted_time
-    return "No play time recorded"
+    return NO_PLAYTIME
+
+
+def _split_arguments(args, closing_quot='', quotations=None):
+    if quotations is None:
+        quotations = ["'", '"']
+    try:
+        return shlex.split(args + closing_quot)
+    except ValueError as ex:
+        message = ex.args[0]
+        if message == "No closing quotation" and quotations:
+            return _split_arguments(args, quotations[0], quotations[1:])
+        logger.error(message)
 
 
 def split_arguments(args):
     """Wrapper around shlex.split that is more tolerant of errors"""
-    try:
-        return shlex.split(args)
-    except ValueError as ex:
-        message = ex.args[0]
-        if message == "No closing quotation":
-            return split_arguments(args + "\"")
-        logger.error(message)
+    if not args:
+        # shlex.split seems to hangs when passed the None value
+        return []
+    return _split_arguments(args)
+
+
+def human_size(size):
+    """Shows a size in bytes in a more readable way"""
+    units = ("bytes", "kB", "MB", "GB", "TB", "PB", "nuh uh", "no way", "BS")
+    unit_index = 0
+    while size > 1024:
+        size = size / 1024
+        unit_index += 1
+    return "%0.1f %s" % (size, units[unit_index])

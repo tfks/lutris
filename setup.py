@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import os
 import sys
+
 from setuptools import setup
+
 from lutris import __version__ as VERSION
 
 if sys.version_info < (3, 4):
@@ -26,9 +28,11 @@ setup(
     author_email='strider@strycore.com',
     packages=[
         'lutris',
+        'lutris.database',
         'lutris.gui',
         'lutris.gui.config',
         'lutris.gui.dialogs',
+        'lutris.gui.installer',
         'lutris.gui.views',
         'lutris.gui.widgets',
         'lutris.installer',
@@ -40,8 +44,7 @@ setup(
         'lutris.util.graphics',
         'lutris.util.mame',
         'lutris.util.steam',
-        'lutris.util.wine',
-        'lutris.vendor'
+        'lutris.util.wine'
     ],
     scripts=['bin/lutris'],
     data_files=data_files,
@@ -50,7 +53,8 @@ setup(
         'PyYAML',
         'PyGObject',
         'evdev',
-        'requests'
+        'requests',
+        'python-magic'
     ],
     extras_require={
         'Discord': ['pypresence~=3.3.2']

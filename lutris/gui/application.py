@@ -1,6 +1,6 @@
 # pylint: disable=no-member,wrong-import-position
 #
-# Copyright (C) 2016 Patrick Griffis <tingping@tingping.se>
+# Copyright (C) 2020 Mathieu Comandon <strider@strycore.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Standard Library
 import json
 import logging
 import os
@@ -28,13 +27,15 @@ import gi
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 gi.require_version("GnomeDesktop", "3.0")
-from gi.repository import Gio, GLib, Gtk
 
-# Lutris Modules
-from lutris import pga, settings
+from gi.repository import Gio, GLib, Gtk, GObject
+
+from lutris import settings
 from lutris.api import parse_installer_url
 from lutris.command import exec_command
+from lutris.database import games as games_db
 from lutris.game import Game
+from lutris.installer import get_installers
 from lutris.gui.dialogs import ErrorDialog, InstallOrPlayDialog
 from lutris.gui.dialogs.issue import IssueReportWindow
 from lutris.gui.installerwindow import InstallerWindow
@@ -47,7 +48,9 @@ from lutris.util.jobs import AsyncCall
 from lutris.util.log import logger
 from lutris.util.steam.appmanifest import AppManifest, get_appmanifests
 from lutris.util.steam.config import get_steamapps_paths
-from lutris.util.wine.dxvk import init_dxvk_versions, wait_for_dxvk_init
+from lutris.util.wine.dxvk import init_dxvk_versions
+from lutris.services import get_services
+from lutris.database.services import ServiceGameCollection
 
 from .lutriswindow import LutrisWindow
 
@@ -59,11 +62,22 @@ class Application(Gtk.Application):
             application_id="net.lutris.Lutris",
             flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
         )
-        init_lutris()
+
+        GObject.add_emission_hook(Game, "game-launch", self.on_game_launch)
+        GObject.add_emission_hook(Game, "game-start", self.on_game_start)
+        GObject.add_emission_hook(Game, "game-stop", self.on_game_stop)
+        GObject.add_emission_hook(Game, "game-install", self.on_game_install)
 
         GLib.set_application_name(_("Lutris"))
-        self.running_games = Gio.ListStore.new(Game)
         self.window = None
+
+        try:
+            init_lutris()
+        except RuntimeError as ex:
+            ErrorDialog(str(ex))
+            return
+
+        self.running_games = Gio.ListStore.new(Game)
         self.app_windows = {}
         self.tray = None
         self.css_provider = Gtk.CssProvider.new()
@@ -115,6 +129,14 @@ class Application(Gtk.Application):
             GLib.OptionFlags.NONE,
             GLib.OptionArg.STRING,
             _("Install a game from a yml file"),
+            None,
+        )
+        self.add_main_option(
+            "output-script",
+            ord("b"),
+            GLib.OptionFlags.NONE,
+            GLib.OptionArg.STRING,
+            _("Generate a bash script to run a game without the client"),
             None,
         )
         self.add_main_option(
@@ -218,21 +240,43 @@ class Application(Gtk.Application):
         if self.app_windows.get(window_key):
             self.app_windows[window_key].present()
             return self.app_windows[window_key]
-        window_inst = window_class(application=self, **kwargs)
+        if issubclass(window_class, Gtk.Dialog):
+            window_inst = window_class(parent=self.window, **kwargs)
+        else:
+            window_inst = window_class(application=self, **kwargs)
         window_inst.connect("destroy", self.on_app_window_destroyed, str(kwargs))
         self.app_windows[window_key] = window_inst
         return window_inst
 
+    def show_installer_window(self, installers, service=None, appid=None):
+        self.show_window(
+            InstallerWindow,
+            installers=installers,
+            service=service,
+            appid=appid
+        )
+
     def on_app_window_destroyed(self, app_window, kwargs_str):
         """Remove the reference to the window when it has been destroyed"""
         window_key = str(app_window.__class__) + kwargs_str
-        del self.app_windows[window_key]
+        try:
+            del self.app_windows[window_key]
+        except KeyError:
+            pass
         return True
 
     @staticmethod
     def _print(command_line, string):
         # Workaround broken pygobject bindings
         command_line.do_print_literal(command_line, string + "\n")
+
+    def generate_script(self, db_game, script_path):
+        """Output a script to a file.
+        The script is capable of launching a game without the client
+        """
+        game = Game(db_game["id"])
+        game.load_config()
+        game.write_script(script_path)
 
     def do_command_line(self, command_line):  # noqa: C901  # pylint: disable=arguments-differ
         # pylint: disable=too-many-locals,too-many-return-statements,too-many-branches
@@ -272,14 +316,14 @@ class Application(Gtk.Application):
             logger.setLevel(logging.NOTSET)
             return 0
 
-        logger.info("Running Lutris %s", settings.VERSION)
+        logger.info("Lutris %s", settings.VERSION)
         migrate()
         run_all_checks()
         AsyncCall(init_dxvk_versions, None)
 
         # List game
         if options.contains("list-games"):
-            game_list = pga.get_games()
+            game_list = games_db.get_games()
             if options.contains("installed"):
                 game_list = [game for game in game_list if game["installed"]]
             if options.contains("json"):
@@ -312,8 +356,13 @@ class Application(Gtk.Application):
         except ValueError:
             self._print(command_line, _("%s is not a valid URI") % url.get_strv())
             return 1
+
         game_slug = installer_info["game_slug"]
         action = installer_info["action"]
+
+        if options.contains("output-script"):
+            action = "write-script"
+
         revision = installer_info["revision"]
 
         installer_file = None
@@ -350,21 +399,34 @@ class Application(Gtk.Application):
             if action == "rungameid":
                 # Force db_game to use game id
                 self.run_in_background = True
-                db_game = pga.get_game_by_field(game_slug, "id")
+                db_game = games_db.get_game_by_field(game_slug, "id")
             elif action == "rungame":
                 # Force db_game to use game slug
                 self.run_in_background = True
-                db_game = pga.get_game_by_field(game_slug, "slug")
+                db_game = games_db.get_game_by_field(game_slug, "slug")
             elif action == "install":
                 # Installers can use game or installer slugs
                 self.run_in_background = True
-                db_game = pga.get_game_by_field(game_slug, "slug") or pga.get_game_by_field(game_slug, "installer_slug")
+                db_game = games_db.get_game_by_field(game_slug, "slug") \
+                    or games_db.get_game_by_field(game_slug, "installer_slug")
             else:
                 # Dazed and confused, try anything that might works
                 db_game = (
-                    pga.get_game_by_field(game_slug, "id") or pga.get_game_by_field(game_slug, "slug")
-                    or pga.get_game_by_field(game_slug, "installer_slug")
+                    games_db.get_game_by_field(game_slug, "id")
+                    or games_db.get_game_by_field(game_slug, "slug")
+                    or games_db.get_game_by_field(game_slug, "installer_slug")
                 )
+
+        # If reinstall flag is passed, force the action to install
+        if options.contains("reinstall"):
+            action = "install"
+
+        if action == "write-script":
+            if not db_game or not db_game["id"]:
+                logger.warning("No game provided to generate the script")
+                return 1
+            self.generate_script(db_game, options.lookup_value("output-script").get_string())
+            return 0
 
         # Graphical commands
         self.activate()
@@ -384,63 +446,82 @@ class Application(Gtk.Application):
                 # No game found, default to install if a game_slug or
                 # installer_file is provided
                 action = "install"
-
         if action == "install":
-            self.show_window(
-                InstallerWindow,
-                parent=self.window,
+            installers = get_installers(
                 game_slug=game_slug,
                 installer_file=installer_file,
                 revision=revision,
             )
+            self.show_installer_window(installers)
+
         elif action in ("rungame", "rungameid"):
             if not db_game or not db_game["id"]:
                 logger.warning("No game found in library")
                 if not self.window.is_visible():
                     self.do_shutdown()
                 return 0
-            self.launch(Game(db_game["id"]))
+            game = Game(db_game["id"])
+            self.on_game_start(game)
         return 0
 
-    def launch(self, game):
-        """Launch a Lutris game"""
-        logger.debug("Launching %s", game)
-        self.running_games.append(game)
-        game.connect("game-stop", self.on_game_stop)
-        wait_for_dxvk_init()
-        game.load_config()  # Reload the config before launching it.
-        game.play()
+    def on_game_launch(self, game):
+        game.launch()
+        return True  # Return True to continue handling the emission hook
 
+    def on_game_start(self, game):
+        self.running_games.append(game)
         if settings.read_setting("hide_client_on_game_start") == "True":
             self.window.hide()  # Hide launcher window
+        return True
+
+    def on_game_install(self, game):
+        """Request installation of a game"""
+        if game.service:
+            service = get_services()[game.service]()
+            db_game = ServiceGameCollection.get_game(service.id, game.appid)
+            service.install(db_game)
+            return True
+
+        installers = get_installers(game_slug=game.slug)
+        if installers:
+            self.show_installer_window(installers)
+        else:
+            logger.debug("Should generate automagical installer here but....")
+            logger.debug("Wait? how did you get here?")
+        return True
+
+    def get_running_game_ids(self):
+        ids = []
+        for i in range(self.running_games.get_n_items()):
+            game = self.running_games.get_item(i)
+            ids.append(str(game.id))
+        return ids
 
     def get_game_by_id(self, game_id):
         for i in range(self.running_games.get_n_items()):
             game = self.running_games.get_item(i)
-            if game.id == game_id:
+            if str(game.id) == str(game_id):
                 return game
-        return None
-
-    def get_game_index(self, game_id):
-        for i in range(self.running_games.get_n_items()):
-            game = self.running_games.get_item(i)
-            if game.id == game_id:
-                return i
         return None
 
     def on_game_stop(self, game):
         """Callback to remove the game from the running games"""
-        game.disconnect_by_func(self.on_game_stop)
-        game_index = self.get_game_index(game.id)
-        if game_index is not None:
-            self.running_games.remove(game_index)
-        game.emit("game-stopped", game.id)
+        ids = self.get_running_game_ids()
+        if str(game.id) in ids:
+            try:
+                self.running_games.remove(ids.index(str(game.id)))
+            except ValueError:
+                pass
+        else:
+            logger.warning("%s not in %s", game.id, ids)
 
+        game.emit("game-stopped")
         if settings.read_setting("hide_client_on_game_start") == "True":
             self.window.show()  # Show launcher window
         elif not self.window.is_visible():
             if self.running_games.get_n_items() == 0:
                 self.quit()
+        return True
 
     @staticmethod
     def get_lutris_action(url):
@@ -476,6 +557,7 @@ class Application(Gtk.Application):
                 "slug": game["slug"],
                 "name": game["name"],
                 "runner": game["runner"],
+                "platform": game["platform"],
                 "directory": game["directory"],
             } for game in game_list
         ]
@@ -518,13 +600,14 @@ class Application(Gtk.Application):
 
     def do_shutdown(self):  # pylint: disable=arguments-differ
         logger.info("Shutting down Lutris")
-        Gtk.Application.do_shutdown(self)
         if self.window:
+            settings.write_setting("selected_category", self.window.selected_category)
             self.window.destroy()
+        Gtk.Application.do_shutdown(self)
 
     def set_tray_icon(self):
         """Creates or destroys a tray icon for the application"""
-        active = settings.read_setting("show_tray_icon", default="false") == "true"
+        active = settings.read_setting("show_tray_icon", default="false").lower() == "true"
         if active and not self.tray:
             self.tray = LutrisStatusIcon(application=self)
         if self.tray:

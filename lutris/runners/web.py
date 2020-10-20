@@ -1,12 +1,11 @@
 """Run web based games"""
-# Standard Library
 import os
 import string
 from gettext import gettext as _
 from urllib.parse import urlparse
 
-# Lutris Modules
-from lutris import pga, settings
+from lutris import settings
+from lutris.database.games import get_game_by_field
 from lutris.runners.runner import Runner
 from lutris.util import datapath, resources, system
 from lutris.util.strings import split_arguments
@@ -123,6 +122,14 @@ class web(Runner):
             "help": _("Enable Adobe Flash Player."),
         },
         {
+            "option": "user_agent",
+            "label": _("Custom User-Agent"),
+            "type": "string",
+            "default": "",
+            "help": _("Overrides the default User-Agent header used by the runner."),
+            "advanced": True,
+        },
+        {
             "option": "devtools",
             "label": _("Debug with Developer Tools"),
             "type": "bool",
@@ -197,7 +204,7 @@ class web(Runner):
                 }
             url = "file://" + url
 
-        game_data = pga.get_game_by_field(self.config.game_config_id, "configpath")
+        game_data = get_game_by_field(self.config.game_config_id, "configpath")
 
         # keep the old behavior from browser runner, but with support for extra arguments!
         if self.runner_config.get("external_browser"):
@@ -248,5 +255,8 @@ class web(Runner):
         if self.runner_config.get("window_size"):
             command.append("--window-size")
             command.append(self.runner_config.get("window_size"))
+        if self.runner_config.get("user_agent"):
+            command.append("--user-agent")
+            command.append(self.runner_config.get("user_agent"))
 
         return {"command": command, "env": self.get_env(False)}
