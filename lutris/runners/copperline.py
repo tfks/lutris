@@ -348,72 +348,72 @@ class copperline(Runner):
 
         mcm = self.runner_config.get("mouse_capture_mode")
 
-        if not mcm is None and mcm != "click":
+        if mcm is not None and mcm != "click":
             command.extend(["--mouse-capture", mcm])
 
         ms = self.runner_config.get("mouse_sensitivity")
 
-        if not ms is None and ms != 50:
+        if ms is not None and ms != 50:
             command.extend(["--mouse-sensitivity", ms])
 
         js = self.runner_config.get("joystick")
 
-        if not js is None and js != "gamepad":
+        if js is not None and js != "gamepad":
             command.extend(["--joystick", js])
 
         af = self.runner_config.get("auto_fire")
 
-        if not af is None:
+        if af is not None:
             command.extend(["--autofire", str(af)])
 
         raf = self.runner_config.get("run_ahead_frames")
 
-        if not raf is None:
+        if raf is not None:
             command.extend(["--run-ahead", str(raf)])
 
         audio_enable = self.runner_config.get("audio_enable")
 
-        if not audio_enable is None and audio_enable == False:
+        if audio_enable is not None and not audio_enable:
             command.append("--noaudio")
 
         audio_channel_mode = self.runner_config.get("audio_channel_mode")
 
-        if not audio_channel_mode is None and audio_channel_mode == "mono":
+        if audio_channel_mode is not None and audio_channel_mode == "mono":
             command.extend(["--audio-channel-mode", "mono"])
 
         audio_stereo_separation = self.runner_config.get("audio_stereo_separation")
 
-        if not audio_stereo_separation is None and audio_stereo_separation != 100:
+        if audio_stereo_separation is not None and audio_stereo_separation != 100:
             command.extend(["--audio-stereo-separation", audio_stereo_separation])
 
         audio_filter = self.runner_config.get("audio_filter")
 
-        if not audio_stereo_separation is None and audio_filter != "auto":
+        if audio_stereo_separation is not None and audio_filter != "auto":
             command.extend(["--audio-filter", audio_filter])
 
         audio_filter = self.runner_config.get("audio_filter")
 
-        if not audio_filter is None and audio_filter != "auto":
+        if audio_filter is not None and audio_filter != "auto":
             command.extend(["audio-filter", audio_filter])
 
         model = self.runner_config.get("model")
 
-        if not model is None:
+        if model is not None:
             command.extend(["--model", model])
 
         chipset = self.runner_config.get("chipset")
 
-        if not chipset is None:
+        if chipset is not None:
             command.extend(["--chipset", chipset])
 
         video = self.runner_config.get("video")
 
-        if not video is None and video != "N/A":
+        if video is not None and video != "N/A":
             command.extend(["--video", video])
 
         cpu_clock = self.runner_config.get("cpu_clock")
 
-        if not cpu_clock is None and cpu_clock > 0:
+        if cpu_clock is not None and cpu_clock > 0:
             command.extend(["--cpu-clock", str(cpu_clock)])
 
         if self.runner_config.get("fpu", False):
@@ -421,17 +421,17 @@ class copperline(Runner):
 
         chip = self.runner_config.get("chip")
 
-        if not chip is None and chip != "N/A":
+        if chip is not None and chip != "N/A":
             command.extend(["--chip", chip])
 
         fast = self.runner_config.get("fast")
 
-        if not fast is None and fast != "0M":
+        if fast is not None and fast != "0M":
             command.append("--fast " + fast)
 
         slow = self.runner_config.get("slow")
 
-        if not slow is None and slow > 0:
+        if slow is not None and slow > 0:
             command.append("--slow " + str(slow))
 
         extra_args = self.runner_config.get("args") or ""
