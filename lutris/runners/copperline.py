@@ -60,10 +60,7 @@ class copperline(Runner):
             "section": _("UI"),
             "label": _("Menu scale"),
             "default": "1x",
-            "choices": [
-                ("1x", "1x"),
-                ("2x", "2x")
-            ]
+            "choices": [("1x", "1x"), ("2x", "2x")],
         },
         {
             "option": "mouse_capture_mode",
@@ -75,7 +72,7 @@ class copperline(Runner):
                 ("auto", "auto"),
                 ("click", "click"),
                 ("manual", "manual"),
-            ]
+            ],
         },
         {
             "option": "mouse_sensitivity",
@@ -84,7 +81,7 @@ class copperline(Runner):
             "label": _("Mouse sensitivity (0-100)"),
             "default": 50,
             "min": 0,
-            "max": 100
+            "max": 100,
         },
         {
             "option": "joystick",
@@ -95,7 +92,7 @@ class copperline(Runner):
             "choices": [
                 ("gamepad", "gamepad"),
                 ("keyboard", "keyboard"),
-            ]
+            ],
         },
         {
             "option": "auto_fire",
@@ -104,14 +101,14 @@ class copperline(Runner):
             "label": _("Auto fire (0-30)"),
             "default": 0,
             "min": 0,
-            "max": 30
+            "max": 30,
         },
         {
             "option": "perf_overlay",
             "type": "bool",
             "section": _("Performance"),
             "label": _("Performance overlay"),
-            "default": False
+            "default": False,
         },
         {
             "option": "run_ahead_frames",
@@ -120,25 +117,16 @@ class copperline(Runner):
             "label": _("Run ahead frames (0-4)"),
             "default": 0,
             "min": 0,
-            "max": 4
+            "max": 4,
         },
-        {
-            "option": "audio_enable",
-            "type": "bool",
-            "section": _("Audio"),
-            "label": _("Audio on/off"),
-            "default": True
-        },
+        {"option": "audio_enable", "type": "bool", "section": _("Audio"), "label": _("Audio on/off"), "default": True},
         {
             "option": "audio_channel",
             "type": "choice",
             "section": _("Audio"),
             "label": _("Audio mono/stereo"),
             "default": "stereo",
-            "choices": [
-                ("Mono", "mono"),
-                ("Stereo", "stereo")
-            ],
+            "choices": [("Mono", "mono"), ("Stereo", "stereo")],
         },
         {
             "option": "audio_stereo_separation",
@@ -147,7 +135,7 @@ class copperline(Runner):
             "label": _("Audio stereo separation (0%-100%, 0 = mono)"),
             "default": 100,
             "min": 0,
-            "max": 100
+            "max": 100,
         },
         {
             "option": "audio_filter",
@@ -155,11 +143,7 @@ class copperline(Runner):
             "section": _("Audio"),
             "label": _("Audio filter"),
             "default": "auto",
-            "choices": [
-                ("Auto", "auto"),
-                ("On", "on"),
-                ("Off", "off")
-            ],
+            "choices": [("Auto", "auto"), ("On", "on"), ("Off", "off")],
         },
         {
             "option": "model",
@@ -457,4 +441,3 @@ class copperline(Runner):
             "command": command,
             "working_dir": self.working_dir,
         }
-
