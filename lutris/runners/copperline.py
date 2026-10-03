@@ -427,12 +427,12 @@ class copperline(Runner):
         fast = self.runner_config.get("fast")
 
         if fast is not None and fast != "0M":
-            command.append("--fast " + fast)
+            command.extend(["--fast", fast])
 
         slow = self.runner_config.get("slow")
 
         if slow is not None and slow > 0:
-            command.append("--slow " + str(slow))
+            command.extend(["--slow", str(slow)])
 
         extra_args = self.runner_config.get("args") or ""
         command.extend(split_arguments(extra_args))
